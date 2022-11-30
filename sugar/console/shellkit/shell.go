@@ -10,7 +10,7 @@ import (
 type Result struct {
 	Stdout string `json:"stdout"`
 	Stderr string `json:"stderr"`
-	Err    error  `json:"err,omitempty"`
+	//Err error `json:"err,omitempty"`
 }
 type ResultTotal struct {
 	Results []*Result `json:"results,omitempty"`
@@ -25,12 +25,18 @@ func ExecuteBatch(commands []string) (ResultTotal, error) {
 	results := make([]*Result, 0, 128)
 
 	for _, v := range commands {
-		stdout, stderr, err := Execute(v)
-		result := &Result{Stdout: stdout, Stderr: stderr, Err: err}
-		results = append(results, result)
-		if err != nil {
-			return ResultTotal{Results: results, Err: err.Error()}, err
+
+		if stdout, err := Execute(v); err != nil {
+			result := &Result{Stdout: stdout, Stderr: err.Error()}
+			results = append(results, result)
+		} else {
+			result := &Result{Stdout: stdout, Stderr: ""}
+			results = append(results, result)
 		}
+
+		//if err != nil {
+		//    return ResultTotal{Results: results, Err: err.Error()}, err
+		//}
 	}
 	return ResultTotal{Results: results}, nil
 }
@@ -50,7 +56,7 @@ func ExecuteBatch(commands []string) (ResultTotal, error) {
 // 	return stdouts, stderrs, nil
 // }
 
-func Execute(command string) (string, string, error) {
+func Execute(command string) (string, error) {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "linux":
@@ -81,7 +87,11 @@ func Execute(command string) (string, string, error) {
 	stdout, _ = decode(stdoutBuffer.Bytes())
 	stderr, _ = decode(stderrBuffer.Bytes())
 
-	return stdout, stderr, cmderr
+	if len(stderr) < 1 {
+		return stdout, cmderr
+	} else {
+		return stderr, cmderr
+	}
 }
 
 func decode(b []byte) (string, error) {

@@ -55,10 +55,6 @@ func Run(client *ssh.Client, cmd string) (string, error) {
 	defer session.Close()
 
 	output, err := session.CombinedOutput(cmd)
-	if err != nil {
-		return "", err
-	}
-
 	return string(output), err
 }
 
@@ -66,9 +62,9 @@ func RunBatch(client *ssh.Client, cmds []string) (*shellkit.ResultTotal, error) 
 	total := new(shellkit.ResultTotal)
 	for _, cmd := range cmds {
 		if stdout, err := Run(client, cmd); err != nil {
-			return total, err
+			total.Append(shellkit.Result{Stdout: stdout, Stderr: err.Error()})
 		} else {
-			total.Append(shellkit.Result{Stdout: stdout, Err: err})
+			total.Append(shellkit.Result{Stdout: stdout, Stderr: ""})
 		}
 	}
 	return total, nil
