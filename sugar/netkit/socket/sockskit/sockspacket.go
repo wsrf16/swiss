@@ -2,6 +2,7 @@ package sockskit
 
 import (
 	"encoding/hex"
+	"errors"
 	"github.com/wsrf16/swiss/sugar/base/convertkit"
 	"github.com/wsrf16/swiss/sugar/netkit"
 	"strconv"
@@ -14,7 +15,7 @@ type SocksPacket1 struct {
 	Methods  []byte
 }
 
-func BuildPacket1(packet []byte) SocksPacket1 {
+func ResolvePacket1(packet []byte) SocksPacket1 {
 	packet1 := SocksPacket1{}
 	packet1.Packet = packet
 	packet1.Version = packet[0]
@@ -22,6 +23,13 @@ func BuildPacket1(packet []byte) SocksPacket1 {
 	packet1.Methods = packet[2:]
 	return packet1
 }
+
+//func (p SocksPacket1) IsSocks() bool {
+//    if p.Version != 4 && p.Version != 5 {
+//        return false
+//    }
+//    return true
+//}
 
 type SocksPacket2 struct {
 	Packet   []byte
@@ -65,22 +73,38 @@ func (p SocksPacket2) GetPort() int {
 	return int(convertkit.BytesToUint16(p.DST_PORT))
 }
 
-func (p SocksPacket2) GetAddr() string {
+func (p SocksPacket2) GetAddr() (string, error) {
 	switch p.Packet[3] {
 	case 0x01:
-		return netkit.BytesToIPv4(p.DST_ADDR)
+		addr, err := netkit.BytesToIPv4(p.DST_ADDR)
+		if err != nil {
+			return "", err
+		}
+		return addr, nil
 	case 0x03:
-		return string(p.DST_ADDR)
+		return string(p.DST_ADDR), nil
 	case 0x04:
-		return bytesToIPv6(p.DST_ADDR)
+		addr, err := bytesToIPv6(p.DST_ADDR)
+		if err != nil {
+			return "", err
+		}
+		return addr, nil
+	default:
+		return "", errors.New("invalid value")
 	}
-	return ""
 }
 
-func (p SocksPacket2) GetAddress() string {
-	return p.GetAddr() + ":" + strconv.Itoa(p.GetPort())
+func (p SocksPacket2) GetAddress() (string, error) {
+	addr, err := p.GetAddr()
+	if err != nil {
+		return "", err
+	}
+	return addr + ":" + strconv.Itoa(p.GetPort()), nil
 }
 
-func bytesToIPv6(b []byte) string {
-	return "[" + hex.EncodeToString(b[0:2]) + "::" + hex.EncodeToString(b[8:10]) + "::" + hex.EncodeToString(b[10:12]) + "::" + hex.EncodeToString(b[12:14]) + "::" + hex.EncodeToString(b[14:16]) + "]"
+func bytesToIPv6(b []byte) (string, error) {
+	if len(b) != 16 {
+		return "", errors.New("invalid data")
+	}
+	return "[" + hex.EncodeToString(b[0:2]) + "::" + hex.EncodeToString(b[8:10]) + "::" + hex.EncodeToString(b[10:12]) + "::" + hex.EncodeToString(b[12:14]) + "::" + hex.EncodeToString(b[14:16]) + "]", nil
 }

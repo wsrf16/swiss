@@ -64,7 +64,7 @@ func JoinBy(delim string, parts ...string) string {
 	combine := strings.Builder{}
 	for i, part := range parts {
 		if i == 0 {
-			combine.WriteString(stringkit.TrimSuffixesAll(part, "/", "\\"))
+			combine.WriteString(stringkit.TrimAllSuffixes(part, "/", "\\"))
 		} else {
 			combine.WriteString(delim + stringkit.TrimAll(part, "/", "\\"))
 		}

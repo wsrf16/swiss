@@ -11,7 +11,7 @@ func TestSend(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = Send(time.Now(), "application-log", producer)
+	err = Send([]byte(time.Now().String()), "application-log", producer)
 	if err != nil {
 		t.Error(err)
 	}

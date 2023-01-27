@@ -11,7 +11,7 @@ func TestReceives(t *testing.T) {
 		t.Error(err)
 	}
 
-	Receive("application-log", consumer, func(msg *sarama.ConsumerMessage) {
+	Receive(consumer, "application-log", func(msg *sarama.ConsumerMessage) {
 		va := string(msg.Value)
 		println(va)
 	})

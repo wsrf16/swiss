@@ -2,14 +2,12 @@ package tcpkit
 
 import (
 	"github.com/wsrf16/swiss/sugar/base/regexpkit"
-	"github.com/wsrf16/swiss/sugar/netkit/socket"
 	"net"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const ConnectEstablished = "HTTP/1.1 200 Connection established\n\n"
@@ -35,13 +33,8 @@ func (p HttpPacket) GetAddress() string {
 	return p.Host + ":" + strconv.Itoa(p.Port)
 }
 
-func (p HttpPacket) ResolveDSTConn() (net.Conn, error) {
-	hostConn, err := net.Dial("tcp", p.GetAddress())
-	if err != nil {
-		return nil, err
-	}
-	hostConn.SetDeadline(time.Now().Add(socket.DefaultDeadLineDuration))
-	return hostConn, err
+func (p HttpPacket) DialDSTConn() (net.Conn, error) {
+	return DialAddress("", p.GetAddress())
 }
 
 type ParsePacketToConnFunc func(*HttpPacket) (net.Conn, error)

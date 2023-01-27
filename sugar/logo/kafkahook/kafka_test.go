@@ -1,7 +1,7 @@
 package kafkahook
 
 import (
-	"github.com/wsrf16/swiss/module/kafka"
+	"github.com/wsrf16/swiss/module/mq/kafka"
 	"github.com/wsrf16/swiss/sugar/logo"
 	"testing"
 )
@@ -14,5 +14,5 @@ func TestNewKafkaLogrusHook(t *testing.T) {
 	hook := KafkaHook{topic: "application-log", producer: producer}
 	logo.AddHook(hook)
 
-	logo.ErrorF("summaryyyyyyyy", err, "messageeeeeeeeeeee%v", 222222)
+	logo.Errorf("summaryyyyyyyy", err, "messageeeeeeeeeeee%v", 222222)
 }

@@ -9,15 +9,15 @@ import (
 	"regexp"
 )
 
-type PatternHandlers map[string]func(http.ResponseWriter, *http.Request)
+type PatternHandlerMap map[string]func(http.ResponseWriter, *http.Request)
 
-func BindMatchHandlers(matchHandlers PatternHandlers, w http.ResponseWriter, r *http.Request) {
-	for pattern, handler := range matchHandlers {
-		if match, err := regexp.MatchString(pattern, r.URL.Path); match && err == nil {
-			handler(w, r)
-		}
-	}
-}
+//func BindMatchHandlers(patternHandlerMap PatternHandlerMap, w http.ResponseWriter, r *http.Request) {
+//    for pattern, handler := range patternHandlerMap {
+//        if match, err := regexp.MatchString(pattern, r.URL.Path); match && err == nil {
+//            handler(w, r)
+//        }
+//    }
+//}
 
 type stat interface {
 	Stat() (os.FileInfo, error)
@@ -67,4 +67,21 @@ func GetSize(file multipart.File) int64 {
 		return sizeInterface.Size()
 	}
 	return 0
+}
+
+func ListenAndServe(addr string, patternHandlerMap PatternHandlerMap) (*http.ServeMux, error) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		for pattern, handler := range patternHandlerMap {
+			if match, err := regexp.MatchString(pattern, r.URL.Path); match && err == nil {
+				handler(w, r)
+			}
+		}
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handler)
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		return nil, err
+	}
+	return mux, nil
 }

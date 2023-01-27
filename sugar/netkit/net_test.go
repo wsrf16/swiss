@@ -17,8 +17,8 @@ func TestBetween(t *testing.T) {
 }
 
 func TestBeInSegment(t *testing.T) {
-	beInSegment1 := BeInSegment("1.1.1.1", "1.1.1.0-1.1.1.3")
-	beInSegment2 := BeInSegment("1.1.1.1", "1.1.1.2-1.1.1.3")
+	beInSegment1 := InSegment("1.1.1.1", "1.1.1.0-1.1.1.3")
+	beInSegment2 := InSegment("1.1.1.1", "1.1.1.2-1.1.1.3")
 	t.Log(beInSegment1)
 	t.Log(beInSegment2)
 }

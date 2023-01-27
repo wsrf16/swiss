@@ -2,7 +2,7 @@ package tcpkit
 
 import (
 	"fmt"
-	"github.com/wsrf16/swiss/sugar/io/iokit"
+	"github.com/wsrf16/swiss/sugar/netkit/socket/socketkit"
 	"net"
 	"testing"
 )
@@ -20,30 +20,44 @@ func TestSample(t *testing.T) {
 		}
 		//go Channal(client, dstaddr, dsthost)
 
-		go func() {
+		go func(client *net.TCPConn) {
 			//addr, err := tcpkit.NewTCP4Addr("192.168.0.133:8080")
 			tcpAddr, _ := net.ResolveTCPAddr("tcp", "192.168.0.133:8080")
 			conn, err := net.DialTCP("tcp", nil, tcpAddr)
 			println(err)
-			iokit.TransferRoundTrip(client, conn)
+			socketkit.TransferRoundTripWaitForCompleted(client, conn, 1)
 			client.Close()
 			conn.Close()
-		}()
+		}(client)
 	}
 }
 
-func TestTransferToServe(t *testing.T) {
-	err := TransferToServe(":8082", "mecs.com:8080")
+// forward proxy
+func TestTransferFromListenAddress(t *testing.T) {
+	err := TransferFromListenAddress(":8082")
 	if err != nil {
 		t.Error(err.Error())
 	}
 }
 
-func TestTransferToHostServe(t *testing.T) {
-	err := TransferToHostServe(":8082")
+// reverse proxy
+func TestTransferFromListenToDialAddress(t *testing.T) {
+	err := TransferFromListenToDialAddress(":8082", "mecs.com:8080")
 	if err != nil {
 		t.Error(err.Error())
 	}
+}
+
+func TestNAT(t *testing.T) {
+	listenAddressFrom := ":9090"
+	listenAddressTo := ":9091"
+	go TransferFromListenToListenAddress(listenAddressFrom, listenAddressTo)
+
+	dialAddressFrom := "127.0.0.1:9091"
+	dialAddressTo := "mecs.com:7777"
+	go TransferFromDialToDialAddress(dialAddressFrom, dialAddressTo)
+
+	select {}
 }
 
 func TestClassic(t *testing.T) {

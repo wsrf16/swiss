@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/wsrf16/swiss/sugar/base/stringkit"
 	"net"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -27,8 +28,11 @@ func GetHostIp() (net.IP, error) {
 	return nil, errors.New("no valid ipv4 address founded")
 }
 
-func BytesToIPv4(b []byte) string {
-	return strconv.Itoa(int(b[0])) + "." + strconv.Itoa(int(b[1])) + "." + strconv.Itoa(int(b[2])) + "." + strconv.Itoa(int(b[3]))
+func BytesToIPv4(b []byte) (string, error) {
+	if len(b) != 4 {
+		return "", errors.New("invalid data")
+	}
+	return strconv.Itoa(int(b[0])) + "." + strconv.Itoa(int(b[1])) + "." + strconv.Itoa(int(b[2])) + "." + strconv.Itoa(int(b[3])), nil
 }
 
 func BytesToIPv6(b []byte) string {
@@ -86,8 +90,31 @@ func Between(ip string, from string, to string) bool {
 	return IPv4ToInt(ip) >= IPv4ToInt(from) && IPv4ToInt(ip) <= IPv4ToInt(to)
 }
 
-func BeInSegment(ip string, segment string) bool {
+func InSegment(ip string, segment string) bool {
 	split := stringkit.SplitPath(segment, "-")
 	from, to := split[0], split[1]
 	return IPv4ToInt(ip) >= IPv4ToInt(from) && IPv4ToInt(ip) <= IPv4ToInt(to)
+}
+
+func IsPort(port string) bool {
+	PortNum, err := strconv.Atoi(port)
+	if err != nil {
+		return false
+		//log.Fatalln("[x]", "port should be a number")
+	}
+	if PortNum < 1 || PortNum > 65535 {
+		return false
+		//log.Fatalln("[x]", "port should be a number and the range is [1,65536)")
+	}
+	return true
+}
+
+func IsIPV4(ip string) bool {
+	pattern := `^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$`
+	ok, err := regexp.MatchString(pattern, ip)
+	if err != nil || !ok {
+		return false
+		//log.Fatalln("[x]", "ip error. ")
+	}
+	return true
 }

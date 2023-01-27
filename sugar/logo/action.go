@@ -1,11 +1,10 @@
 package logo
 
 import (
-	"fmt"
 	"github.com/wsrf16/swiss/sugar/runtimekit"
 )
 
-func Panic(summary string, data any, message string) *Logger {
+func Panic(summary string, data any, message ...any) *Logger {
 	info := runtimekit.GetStackTraceInfos()[1]
 	stacks := runtimekit.GetStackTraceLines()[1:]
 	log.WithFields(Fields{
@@ -16,11 +15,11 @@ func Panic(summary string, data any, message string) *Logger {
 		"line":          info.Line,
 		"func":          info.Function,
 		"pc":            info.ProgramCounter,
-	}).Panic(message)
+	}).Panic(message...)
 	return log
 }
 
-func PanicF(summary string, data any, message string, a ...any) *Logger {
+func Panicf(summary string, data any, format string, a ...any) *Logger {
 	info := runtimekit.GetStackTraceInfos()[1]
 	stacks := runtimekit.GetStackTraceLines()[1:]
 	log.WithFields(Fields{
@@ -31,11 +30,11 @@ func PanicF(summary string, data any, message string, a ...any) *Logger {
 		"line":          info.Line,
 		"func":          info.Function,
 		"pc":            info.ProgramCounter,
-	}).Panic(fmt.Sprintf(message, a))
+	}).Panicf(format, a...)
 	return log
 }
 
-func Fatal(summary string, data any, message string) *Logger {
+func Fatal(summary string, data any, message ...any) *Logger {
 	info := runtimekit.GetStackTraceInfos()[1]
 	stacks := runtimekit.GetStackTraceLines()[1:]
 	log.WithFields(Fields{
@@ -46,11 +45,11 @@ func Fatal(summary string, data any, message string) *Logger {
 		"line":          info.Line,
 		"func":          info.Function,
 		"pc":            info.ProgramCounter,
-	}).Fatal(message)
+	}).Fatal(message...)
 	return log
 }
 
-func FatalF(summary string, data any, message string, a ...any) *Logger {
+func Fatalf(summary string, data any, format string, a ...any) *Logger {
 	info := runtimekit.GetStackTraceInfos()[1]
 	stacks := runtimekit.GetStackTraceLines()[1:]
 	log.WithFields(Fields{
@@ -61,11 +60,11 @@ func FatalF(summary string, data any, message string, a ...any) *Logger {
 		"line":          info.Line,
 		"func":          info.Function,
 		"pc":            info.ProgramCounter,
-	}).Fatal(fmt.Sprintf(message, a))
+	}).Fatalf(format, a...)
 	return log
 }
 
-func Error(summary string, data any, message string) *Logger {
+func Error(summary string, data any, message ...any) *Logger {
 	info := runtimekit.GetStackTraceInfos()[1]
 	stacks := runtimekit.GetStackTraceLines()[1:]
 	log.WithFields(Fields{
@@ -76,11 +75,11 @@ func Error(summary string, data any, message string) *Logger {
 		"line":          info.Line,
 		"func":          info.Function,
 		"pc":            info.ProgramCounter,
-	}).Error(message)
+	}).Error(message...)
 	return log
 }
 
-func ErrorF(summary string, data any, message string, a ...any) *Logger {
+func Errorf(summary string, data any, format string, a ...any) *Logger {
 	info := runtimekit.GetStackTraceInfos()[1]
 	stacks := runtimekit.GetStackTraceLines()[1:]
 	log.WithFields(Fields{
@@ -91,11 +90,11 @@ func ErrorF(summary string, data any, message string, a ...any) *Logger {
 		"line":          info.Line,
 		"func":          info.Function,
 		"pc":            info.ProgramCounter,
-	}).Errorf(message, a)
+	}).Errorf(format, a...)
 	return log
 }
 
-func Warn(summary string, data any, message string) *Logger {
+func Warn(summary string, data any, message ...any) *Logger {
 	info := runtimekit.GetStackTraceInfos()[1]
 	stacks := runtimekit.GetStackTraceLines()[1:]
 	log.WithFields(Fields{
@@ -106,11 +105,11 @@ func Warn(summary string, data any, message string) *Logger {
 		"line":          info.Line,
 		"func":          info.Function,
 		"pc":            info.ProgramCounter,
-	}).Warn(message)
+	}).Warn(message...)
 	return log
 }
 
-func WarnF(summary string, data any, message string, a ...any) *Logger {
+func Warnf(summary string, data any, format string, a ...any) *Logger {
 	info := runtimekit.GetStackTraceInfos()[1]
 	stacks := runtimekit.GetStackTraceLines()[1:]
 	log.WithFields(Fields{
@@ -121,54 +120,54 @@ func WarnF(summary string, data any, message string, a ...any) *Logger {
 		"line":          info.Line,
 		"func":          info.Function,
 		"pc":            info.ProgramCounter,
-	}).Warn(fmt.Sprintf(message, a))
+	}).Warnf(format, a...)
 	return log
 }
 
-func Info(summary string, data any, message string) *Logger {
+func Info(summary string, data any, message ...any) *Logger {
 	log.WithFields(Fields{
 		"summary": summary,
 		"data":    data,
-	}).Info(message)
+	}).Info(message...)
 	return log
 }
 
-func InfoF(summary string, data any, message string, a ...any) *Logger {
+func Infof(summary string, data any, format string, a ...any) *Logger {
 	log.WithFields(Fields{
 		"summary": summary,
 		"data":    data,
-	}).Info(fmt.Sprintf(message, a))
+	}).Infof(format, a...)
 	return log
 }
 
-func Debug(summary string, data any, message string) *Logger {
+func Debug(summary string, data any, message ...any) *Logger {
 	log.WithFields(Fields{
 		"summary": summary,
 		"data":    data,
-	}).Debug(message)
+	}).Debug(message...)
 	return log
 }
 
-func DebugF(summary string, data any, message string, a ...any) *Logger {
+func Debugf(summary string, data any, format string, a ...any) *Logger {
 	log.WithFields(Fields{
 		"summary": summary,
 		"data":    data,
-	}).Debug(fmt.Sprintf(message, a))
+	}).Debugf(format, a...)
 	return log
 }
 
-func Trace(summary string, data any, message string) *Logger {
+func Trace(summary string, data any, message ...any) *Logger {
 	log.WithFields(Fields{
 		"summary": summary,
 		"data":    data,
-	}).Trace(message)
+	}).Trace(message...)
 	return log
 }
 
-func TraceF(summary string, data any, message string, a ...any) *Logger {
+func Tracef(summary string, data any, format string, a ...any) *Logger {
 	log.WithFields(Fields{
 		"summary": summary,
 		"data":    data,
-	}).Trace(fmt.Sprintf(message, a))
+	}).Tracef(format, a...)
 	return log
 }

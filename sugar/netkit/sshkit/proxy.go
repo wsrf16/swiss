@@ -1,33 +1,42 @@
 package sshkit
 
 import (
-	"github.com/wsrf16/swiss/sugar/netkit/socket"
-	//"github.com/wsrf16/swiss/sugar/netkit/socket/tcpkit"
+	"github.com/wsrf16/swiss/sugar/netkit/socket/socketkit"
 	"github.com/wsrf16/swiss/sugar/netkit/socket/tcpkit"
 	"net"
 )
 
-func TunnelServe(lAddress string, mediumProperty *SSHProperty, dstAddress string) error {
-	lAddr, err := net.ResolveTCPAddr("tcp", lAddress)
+func TunnelServe(lAddress string, mediumProperty *SSHProperty, dAddress string) error {
+	_, client, err := tcpkit.ListenAndAcceptAddress(lAddress)
 	if err != nil {
 		return err
 	}
 
-	connFunc, err := connFactoryFunc(mediumProperty, dstAddress)
+	//connFunc, err := connFactoryFunc(mediumProperty, dAddress)
+	//if err != nil {
+	//    return err
+	//}
+	//
+	//server, err := connFunc()
+	//if err != nil {
+	//    return err
+	//}
+
+	server, err := dialAddress(mediumProperty, dAddress)
 	if err != nil {
 		return err
 	}
-
-	return tcpkit.ListenThenAcceptThenTransferTo(lAddr, connFunc, true)
+	_, err = tcpkit.Transfer(client, server, 1, true, true)
+	return err
 }
 
-func connFactoryFunc(mediumProperty *SSHProperty, dstAddress string) (socket.ConnFactoryFunc, error) {
-	serverSSHClient, err := BuildClientByProperty(mediumProperty)
+func connFactoryFunc(lSSHProperty *SSHProperty, dAddress string) (socketkit.ConnFactoryFunc, error) {
+	serverSSHClient, err := BuildClientByProperty(lSSHProperty)
 	if err != nil {
 		return nil, err
 	}
 
-	addr, err := tcpkit.NewTCP4Addr(dstAddress)
+	addr, err := tcpkit.NewTCP4Addr(dAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -36,4 +45,25 @@ func connFactoryFunc(mediumProperty *SSHProperty, dstAddress string) (socket.Con
 		return serverSSHClient.DialTCP("tcp", nil, addr)
 	}
 	return connFunc, nil
+}
+
+func dialAddress(lSSHProperty *SSHProperty, dAddress string) (net.Conn, error) {
+	serverSSHClient, err := BuildClientByProperty(lSSHProperty)
+	if err != nil {
+		return nil, err
+	}
+
+	addr, err := tcpkit.NewTCP4Addr(dAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	//connFunc := func() (net.Conn, error) {
+	//    return serverSSHClient.DialTCP("tcp", nil, addr)
+	//}
+	conn, err := serverSSHClient.DialTCP("tcp", nil, addr)
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
 }

@@ -2,8 +2,8 @@ package kafka
 
 import (
 	"context"
-	"fmt"
 	"github.com/Shopify/sarama"
+	"log"
 )
 
 func NewSyncConsumerGroup(addresses []string, groupID, user string, password string) (sarama.ConsumerGroup, error) {
@@ -12,16 +12,14 @@ func NewSyncConsumerGroup(addresses []string, groupID, user string, password str
 	return sarama.NewConsumerGroup(addresses, groupID, config)
 }
 
-func ReceiveGroup(consumerGroup sarama.ConsumerGroup, topics []string, handle func(message *sarama.ConsumerMessage)) error {
+func GroupReceive(consumerGroup sarama.ConsumerGroup, topics []string, handle func(message *sarama.ConsumerMessage) error) error {
 	defer consumerGroup.Close()
-	return consumerGroup.Consume(context.Background(), topics, &ConsumerGroupHandler{Do: func(msg *sarama.ConsumerMessage) {
-		handle(msg)
-	}})
+	return consumerGroup.Consume(context.Background(), topics, &ConsumerGroupHandler{Handle: handle})
 }
 
 type ConsumerGroupHandler struct {
 	//sarama.ConsumerGroupHandler
-	Do func(msg *sarama.ConsumerMessage)
+	Handle func(msg *sarama.ConsumerMessage) error
 }
 
 func (*ConsumerGroupHandler) Setup(sarama.ConsumerGroupSession) error {
@@ -36,9 +34,13 @@ func (*ConsumerGroupHandler) Cleanup(sarama.ConsumerGroupSession) error {
 // ConsumeClaim must start a consumer loop of ConsumerGroupClaim's Messages().
 func (handler *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		fmt.Printf("Partition:%d, Offset:%d, key:%s, value:%s\n", msg.Partition, msg.Offset, string(msg.Key), string(msg.Value))
-		handler.Do(msg)
-		session.MarkMessage(msg, "")
+		err := handler.Handle(msg)
+		if err != nil {
+			log.Printf("Partition:%d, Offset:%d, key:%s err:%s", msg.Partition, msg.Offset, string(msg.Key), err)
+		} else {
+			session.MarkMessage(msg, "consumed")
+			log.Printf("Partition:%d, Offset:%d, key:%s", msg.Partition, msg.Offset, string(msg.Key))
+		}
 	}
 
 	return nil

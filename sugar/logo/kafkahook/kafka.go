@@ -2,7 +2,7 @@ package kafkahook
 
 import (
 	"github.com/Shopify/sarama"
-	"github.com/wsrf16/swiss/module/kafka"
+	"github.com/wsrf16/swiss/module/mq/kafka"
 	"github.com/wsrf16/swiss/sugar/logo"
 	"github.com/wsrf16/swiss/sugar/netkit"
 )

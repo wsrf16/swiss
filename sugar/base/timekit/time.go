@@ -33,15 +33,36 @@ func Watch() time.Duration {
 	return enhause
 }
 
-type TimeFormat string
+type TimeFormat = string
 
 const (
 	NormalFormat      TimeFormat = "2006-01-02 15:04:05"
-	DateFormat                   = "2006-01-02"
 	TightNormalFormat            = "20060102150405"
-	TightDateFormat              = "2006-01-02 15:04:05"
+	SlashNormalFormat            = "2006/01/02 15:04:05"
+	DateFormat                   = "2006-01-02"
+	SlashDateFormat              = "2006/01/02"
 )
 
 func Format(t time.Time, f TimeFormat) string {
 	return t.Format(string(f))
+}
+
+type NormalTime time.Time
+
+func (t NormalTime) MarshalJSON() ([]byte, error) {
+	b := make([]byte, 0, len(NormalFormat)+2)
+	b = append(b, '"')
+	b = time.Time(t).AppendFormat(b, NormalFormat)
+	b = append(b, '"')
+	return b, nil
+}
+
+func (t *NormalTime) UnmarshalJSON(data []byte) (err error) {
+	now, err := time.ParseInLocation(`"`+NormalFormat+`"`, string(data), time.Local)
+	*t = NormalTime(now)
+	return
+}
+
+func (t NormalTime) String() string {
+	return time.Time(t).Format(NormalFormat)
 }

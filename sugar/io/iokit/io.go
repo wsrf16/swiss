@@ -4,12 +4,17 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"github.com/wsrf16/swiss/sugar/console/colorkit"
 	"github.com/wsrf16/swiss/sugar/io/pathkit"
 	"io"
 	"log"
 	"net"
 	"os"
 )
+
+//var (
+//    Monitor = false
+//)
 
 func WriteToFile(bytes []byte, path string) error {
 	return os.WriteFile(path, bytes, 0666)
@@ -80,20 +85,43 @@ func DirectCopy(dst io.Writer, src io.Reader) (int64, error) {
 	return io.Copy(dst, src)
 }
 
-func CopyOutput(dst io.Writer, src io.Reader) ([]byte, error) {
-	return CopyBuffer(dst, src, 1024, true)
+func CopyBufferBlock(dst io.Writer, src io.Reader, monitor bool) (int64, error) {
+	return CopyBuffer(dst, src, 1024, true, monitor)
 }
 
-func CopyNonBlock(dst io.Writer, src io.Reader) ([]byte, error) {
-	return CopyBuffer(dst, src, 1024, false)
+func p(b []byte) {
+	format := colorkit.SpellColorString("%s", colorkit.GreenBg, colorkit.Yellow)
+	log.Printf(format, b)
 }
 
-func CopyBuffer(dst io.Writer, src io.Reader, bufLength int, block bool) (total []byte, err error) {
+func CopyBuffer(dst io.Writer, src io.Reader, bufLength int, block bool, monitor bool) (int64, error) {
+	if block && monitor == false {
+		return io.Copy(dst, src)
+	}
+
+	var back CopyBack
+	if monitor {
+		back = p
+	} else {
+		back = nil
+	}
+	buffer, err := CopyBufferCallBack(dst, src, bufLength, block, back)
+	return int64(len(buffer)), err
+}
+
+type CopyBack func([]byte)
+
+func CopyBufferCallBack(dst io.Writer, src io.Reader, bufLength int, block bool, back CopyBack) (total []byte, err error) {
+	//buf不会自动扩容
+	//buf := make([]byte, 0, bufLength)
 	buf := make([]byte, bufLength)
 	total = make([]byte, 0)
 	for {
 		nr, er := src.Read(buf)
 		if nr > 0 {
+			if back != nil {
+				back(buf[0:nr])
+			}
 			nw, ew := dst.Write(buf[0:nr])
 			if nw < 0 || nr < nw {
 				nw = 0
@@ -227,28 +255,20 @@ func ReadLines(rd io.Reader) ([][]byte, error) {
 //    return bufio.NewReader(rd).ReadSlice(delim)
 //}
 
-func TransferRoundTrip(src net.Conn, dst net.Conn) {
-	closed := make(chan bool, 2)
-	// client - server
-	go Transfer(src, dst, closed)
-	// server - client
-	Transfer(dst, src, closed)
-	<-closed
-}
-
-func close(closed chan bool) {
-	closed <- true
-}
-
-func Transfer(src io.Reader, dst io.Writer, closed chan bool) error {
-	defer close(closed)
-	_, err := io.Copy(dst, src)
-	//_, err = CopyOutput(dst, src)
-	if err != nil {
-		log.Println(err)
-		return err
+func CloseAll(connSlice ...net.Conn) {
+	if connSlice != nil {
+		for _, conn := range connSlice {
+			if conn != nil {
+				conn.Close()
+			}
+		}
 	}
-	return err
+}
+
+func IsConnect(conn net.Conn) bool {
+	n, err := conn.Write([]byte("~~~~~~"))
+	log.Println(n)
+	return err == nil
 }
 
 func ReadFirstLine(file string) (string, error) {

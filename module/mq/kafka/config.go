@@ -16,6 +16,7 @@ func newKafkaConfig(user string, password string) *sarama.Config {
 	config.Producer.Flush.Frequency = 500 * time.Millisecond  // Flush batches every 500ms
 	config.Producer.Return.Successes = true                   // 成功交付的消息将在success channel返回
 	config.Consumer.Group.ResetInvalidOffsets = true
+	config.Consumer.Offsets.Initial = sarama.OffsetNewest
 
 	if len(user) > 0 {
 		config.Net.SASL.Enable = true

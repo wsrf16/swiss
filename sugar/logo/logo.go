@@ -54,13 +54,13 @@ type Entry = logrus.Entry
 
 type Logger = logrus.Logger
 
-//type JSONFormatter struct {
+// type JSONFormatter struct {
 //    logrus.JSONFormatter
-//}
+// }
 
-//type TextFormatter struct {
+// type TextFormatter struct {
 //    logrus.TextFormatter
-//}
+// }
 
 var log *Logger = logrus.New()
 
@@ -68,12 +68,12 @@ var once sync.Once
 
 func init() {
 	once.Do(func() {
-		//SetReportCaller(true)
-		//SetFormatter(&JSONFormatter{})
-		SetFormatter(&TextFormatter{
-			FullTimestamp: true,
-			ForceQuote:    true,
-		})
+		// SetReportCaller(true)
+		SetFormatter(&JSONFormatter{})
+		// SetFormatter(&TextFormatter{
+		// 	FullTimestamp: true,
+		// 	ForceQuote:    true,
+		// })
 		SetOutput(os.Stdout)
 		SetLevel(InfoLevel)
 		AddHook(&DefaultFieldsHook{})

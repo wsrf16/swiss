@@ -15,7 +15,7 @@ func ToRune(s string) []rune {
 	return r
 }
 
-func HasPrefixes(s string, prefixes ...string) (bool, string) {
+func HasAnyPrefix(s string, prefixes ...string) (bool, string) {
 	for _, prefix := range prefixes {
 		if strings.HasPrefix(s, prefix) {
 			return true, prefix
@@ -24,7 +24,7 @@ func HasPrefixes(s string, prefixes ...string) (bool, string) {
 	return false, ""
 }
 
-func HasSuffixes(s string, suffixes ...string) (bool, string) {
+func HasAnySuffix(s string, suffixes ...string) (bool, string) {
 	for _, suffix := range suffixes {
 		if strings.HasSuffix(s, suffix) {
 			return true, suffix
@@ -33,10 +33,10 @@ func HasSuffixes(s string, suffixes ...string) (bool, string) {
 	return false, ""
 }
 
-func TrimPrefixesAll(s string, prefixes ...string) string {
+func TrimAllPrefixes(s string, prefixes ...string) string {
 	ret := s
 	for {
-		if has, prefix := HasPrefixes(ret, prefixes...); has {
+		if has, prefix := HasAnyPrefix(ret, prefixes...); has {
 			ret = strings.TrimPrefix(ret, prefix)
 		} else {
 			return ret
@@ -44,10 +44,10 @@ func TrimPrefixesAll(s string, prefixes ...string) string {
 	}
 }
 
-func TrimSuffixesAll(s string, suffixes ...string) string {
+func TrimAllSuffixes(s string, suffixes ...string) string {
 	ret := s
 	for {
-		if has, suffix := HasSuffixes(ret, suffixes...); has {
+		if has, suffix := HasAnySuffix(ret, suffixes...); has {
 			ret = strings.TrimSuffix(ret, suffix)
 		} else {
 			return ret
@@ -57,8 +57,8 @@ func TrimSuffixesAll(s string, suffixes ...string) string {
 
 func TrimAll(s string, sides ...string) string {
 	ret := s
-	ret = TrimSuffixesAll(ret, sides...)
-	ret = TrimPrefixesAll(ret, sides...)
+	ret = TrimAllSuffixes(ret, sides...)
+	ret = TrimAllPrefixes(ret, sides...)
 	return ret
 }
 
@@ -74,7 +74,7 @@ func JoinURL(parts ...string) string {
 	url := ""
 	for i, part := range parts {
 		if i == 0 {
-			url += TrimSuffixesAll(part, "/")
+			url += TrimAllSuffixes(part, "/")
 		} else {
 			url += "/" + TrimAll(part, "/")
 		}

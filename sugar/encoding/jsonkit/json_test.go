@@ -6,8 +6,8 @@ import (
 )
 
 type Model struct {
-	Id   int
-	Name string
+	Id   int    `json:"aaaa"`
+	Name string `json:"bbbb"`
 }
 
 func TestMarshal(t *testing.T) {

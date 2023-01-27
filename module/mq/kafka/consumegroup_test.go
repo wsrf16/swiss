@@ -11,9 +11,10 @@ func TestConsumeGroup(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = ReceiveGroup(group, []string{"application-log"}, func(msg *sarama.ConsumerMessage) {
+	err = GroupReceive(group, []string{"application-log"}, func(msg *sarama.ConsumerMessage) error {
 		s := string(msg.Value)
 		println(s)
+		return nil
 	})
 	if err != nil {
 		t.Error(err)

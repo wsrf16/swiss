@@ -3,7 +3,6 @@ package kafka
 import (
 	"encoding/json"
 	"github.com/Shopify/sarama"
-	"github.com/wsrf16/swiss/sugar/encoding/jsonkit"
 	"log"
 )
 
@@ -20,37 +19,39 @@ func newProducerMessage(b []byte, topic string) *sarama.ProducerMessage {
 	return msg
 }
 
-func Send(b []byte, topic string, producer sarama.SyncProducer) error {
+func Send(msg *sarama.ProducerMessage, producer sarama.SyncProducer) error {
 	defer producer.Close()
 
-	msg := newProducerMessage(b, topic)
 	partition, offset, err := producer.SendMessage(msg)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("Produce: Partion = %d, offset = %d\n", partition, offset)
+	log.Printf("Produce: Partion = %d, offset = %d", partition, offset)
 	return nil
 }
 
-func SendT(t any, topic string, producer sarama.SyncProducer) error {
-	defer producer.Close()
+func SendB(b []byte, topic string, producer sarama.SyncProducer) error {
+	msg := newProducerMessage(b, topic)
+	return Send(msg, producer)
+}
 
+func SendT(t any, topic string, producer sarama.SyncProducer) error {
 	b, err := json.Marshal(t)
 	if err != nil {
 		return err
 	}
 
-	return SendT(b, topic, producer)
+	return SendB(b, topic, producer)
 }
 
-func SendTT(t any, topic string, producer sarama.SyncProducer) error {
-	defer producer.Close()
-
-	s, err := jsonkit.Marshal(t)
-	if err != nil {
-		return err
-	}
-
-	return SendT([]byte(s), topic, producer)
-}
+//func SendTT(t any, topic string, producer sarama.SyncProducer) error {
+//    defer producer.Close()
+//
+//    s, err := jsonkit.Marshal(t)
+//    if err != nil {
+//        return err
+//    }
+//
+//    return SendT([]byte(s), topic, producer)
+//}

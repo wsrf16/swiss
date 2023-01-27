@@ -16,23 +16,23 @@ func LoopAlwaysReturn[T any](always bool, do func() T) T {
 	}
 }
 
-func If[T any](condition bool, trueVal, falseVal T) T {
+func If[T any](condition bool, match, notMatch T) T {
 	if condition {
-		return trueVal
+		return match
 	}
-	return falseVal
+	return notMatch
 }
 
-func IfFunc[T any](condition bool, trueFunc func() T, falseFunc func() T) T {
+func IfFunc[T any](condition bool, matchFunc func() T, notMatchFunc func() T) T {
 	if condition {
-		return trueFunc()
+		return matchFunc()
 	}
-	return falseFunc()
+	return notMatchFunc()
 }
 
-func IfFuncPair[T1 any, T2 any](condition bool, trueFunc func() (T1, T2), falseFunc func() (T1, T2)) (T1, T2) {
+func IfFuncPair[T1 any, T2 any](condition bool, matchFunc func() (T1, T2), notMatchFunc func() (T1, T2)) (T1, T2) {
 	if condition {
-		return trueFunc()
+		return matchFunc()
 	}
-	return falseFunc()
+	return notMatchFunc()
 }

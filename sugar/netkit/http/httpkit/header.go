@@ -26,7 +26,7 @@ func GetXForwardedFor(r *http.Request) ([]string, bool) {
 	}
 }
 
-func GetAddedXForwardedFor(r *http.Request) ([]string, bool) {
+func GetAddOnXForwardedFor(r *http.Request) ([]string, bool) {
 	if prior, ok := GetXForwardedFor(r); ok {
 		if realIP, err := GetXRealIP(r); err != nil {
 			n := append(prior, "unknown")
@@ -55,7 +55,7 @@ func AddXRealIP(r *http.Request) error {
 }
 
 func AddXForwardedFor(r *http.Request) {
-	forwardedFor, _ := GetAddedXForwardedFor(r)
+	forwardedFor, _ := GetAddOnXForwardedFor(r)
 	r.Header["X-Forwarded-For"] = forwardedFor
 }
 

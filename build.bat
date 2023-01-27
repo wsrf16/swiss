@@ -13,6 +13,6 @@ set GOOS=linux
 
 @REM set GOARM=7
 
-go build -o swiss
+go build
 
 ENDLOCAL
