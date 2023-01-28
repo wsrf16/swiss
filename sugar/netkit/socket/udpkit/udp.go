@@ -1,11 +1,11 @@
 package udpkit
 
 import (
-	"github.com/wsrf16/swiss/sugar/base/control"
+	"github.com/wsrf16/swiss/sugar/base/lambda"
+	"github.com/wsrf16/swiss/sugar/base/timekit"
 	"github.com/wsrf16/swiss/sugar/netkit/socket/socketkit"
 	"log"
 	"net"
-	"time"
 )
 
 func NewUDPAddr(address string) (*net.UDPAddr, error) {
@@ -53,7 +53,7 @@ func DialAddr(lAddr, rAddr *net.UDPAddr) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	conn.SetDeadline(time.Now().Add(socketkit.DefaultDeadLineDuration))
+	conn.SetDeadline(timekit.Time3Minutes())
 	return conn, nil
 }
 
@@ -108,7 +108,7 @@ func TransferFromDialToDialAddress(dAddressFrom string, dAddressTo string) error
 }
 
 func TransferFromListenToDial(lAddr *net.UDPAddr, dAddr *net.UDPAddr, autoReconnect bool) error {
-	return control.LoopAlwaysReturn(autoReconnect, func() error {
+	return lambda.LoopAlwaysReturn(autoReconnect, func() error {
 		clientConnFactory := func() (net.Conn, error) {
 			return Listen(lAddr)
 		}
@@ -132,14 +132,14 @@ func TransferFromListenToDial(lAddr *net.UDPAddr, dAddr *net.UDPAddr, autoReconn
 			//    return err
 			//}
 			//Transfer(client, server, 1, true, true)
-			TransferDynamic(client, serverConnFactory, 1, true, true)
+			TransferDynamic(client, serverConnFactory, true)
 		}
 		return nil
 	})
 }
 
 func TransferFromListenToListen(lAddrFrom *net.UDPAddr, lAddrTo *net.UDPAddr, autoReconnect bool) error {
-	return control.LoopAlwaysReturn(autoReconnect, func() error {
+	return lambda.LoopAlwaysReturn(autoReconnect, func() error {
 		clientConnFactory := func() (net.Conn, error) {
 			return Listen(lAddrFrom)
 		}
@@ -158,15 +158,15 @@ func TransferFromListenToListen(lAddrFrom *net.UDPAddr, lAddrTo *net.UDPAddr, au
 			//    log.Println(err)
 			//    return err
 			//}
-			//Transfer(client, server, 1, true, true)
-			TransferDynamic(client, serverConnFactory, 1, true, true)
+			//Transfer(client, server, true)
+			TransferDynamic(client, serverConnFactory, true)
 		}
 		return nil
 	})
 }
 
 func TransferFromDialToDial(dAddrFrom *net.UDPAddr, dAddrTo *net.UDPAddr, autoReconnect bool) error {
-	return control.LoopAlwaysReturn(autoReconnect, func() error {
+	return lambda.LoopAlwaysReturn(autoReconnect, func() error {
 		clientConnFactory := func() (net.Conn, error) {
 			return DialAddr(nil, dAddrFrom)
 		}
@@ -186,21 +186,21 @@ func TransferFromDialToDial(dAddrFrom *net.UDPAddr, dAddrTo *net.UDPAddr, autoRe
 			//    return err
 			//}
 			//Transfer(client, server, 1, true, true)
-			TransferDynamic(client, serverConnFactory, 1, true, true)
+			TransferDynamic(client, serverConnFactory, true)
 		}
 		return nil
 	})
 }
 
-func TransferDynamic(client net.Conn, serverConnFactory socketkit.ConnFactoryFunc, wait int, closeClient bool, closeServer bool) ([]int, error) {
+func TransferDynamic(client net.Conn, serverConnFactory socketkit.ConnFactoryFunc, closed bool) ([]int, error) {
 	server, err := serverConnFactory()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
-	return Transfer(client, server, wait, closeClient, closeServer)
+	return Transfer(client, server, closed)
 }
 
-func Transfer(client net.Conn, server net.Conn, wait int, closeClient bool, closeServer bool) ([]int, error) {
-	return socketkit.TransferRoundTripThenClose(client, server, wait, closeClient, closeServer), nil
+func Transfer(client net.Conn, server net.Conn, closed bool) ([]int, error) {
+	return socketkit.TransferRoundTripWaitForCompleted(client, server, closed), nil
 }

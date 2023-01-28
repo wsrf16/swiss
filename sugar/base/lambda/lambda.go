@@ -1,4 +1,4 @@
-package control
+package lambda
 
 func LoopAlways(always bool, do func()) {
 	for first := true; first; first = always {

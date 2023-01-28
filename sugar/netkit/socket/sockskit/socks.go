@@ -2,7 +2,8 @@ package sockskit
 
 import (
 	"errors"
-	"github.com/wsrf16/swiss/sugar/base/control"
+	"github.com/wsrf16/swiss/sugar/base/lambda"
+	"github.com/wsrf16/swiss/sugar/base/timekit"
 	"github.com/wsrf16/swiss/sugar/io/iokit"
 	"github.com/wsrf16/swiss/sugar/netkit/socket/socketkit"
 	"github.com/wsrf16/swiss/sugar/netkit/socket/tcpkit"
@@ -20,7 +21,7 @@ func TransferFromListenAddress(lAddress string) error {
 }
 
 func TransferFromListen(laddr *net.TCPAddr, autoReconnect bool) error {
-	return control.LoopAlwaysReturn(autoReconnect, func() error {
+	return lambda.LoopAlwaysReturn(autoReconnect, func() error {
 		listener, err := tcpkit.Listen(laddr)
 		if err != nil {
 			return err
@@ -31,16 +32,17 @@ func TransferFromListen(laddr *net.TCPAddr, autoReconnect bool) error {
 			if err != nil {
 				return err
 			}
+			client.SetDeadline(timekit.Time1Year())
 
-			go Transfer(client, true, true)
+			go Transfer(client, true)
 		}
 		return nil
 	})
 }
 
-func Transfer(client net.Conn, clientClose bool, serverClose bool) ([]int, error) {
-	if client != nil && clientClose {
-		defer client.Close()
+func Transfer(client net.Conn, closed bool) ([]int, error) {
+	if closed {
+		defer socketkit.Close(client)
 	}
 
 	readBytes, err := iokit.ReadAllBytesBlockless(client)
@@ -75,9 +77,11 @@ func Transfer(client net.Conn, clientClose bool, serverClose bool) ([]int, error
 	if err != nil {
 		return nil, err
 	}
-	if server != nil && serverClose {
-		defer server.Close()
+	server.SetDeadline(timekit.Time1Year())
+
+	if closed {
+		defer socketkit.Close(server)
 	}
 
-	return socketkit.TransferRoundTripThenClose(client, server, 1, clientClose, serverClose), nil
+	return socketkit.TransferRoundTripWaitForCompleted(client, server, closed), nil
 }

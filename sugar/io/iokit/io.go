@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
+	"github.com/wsrf16/swiss/sugar/base/lambda"
 	"github.com/wsrf16/swiss/sugar/console/colorkit"
 	"github.com/wsrf16/swiss/sugar/io/pathkit"
 	"io"
@@ -89,29 +91,32 @@ func CopyBufferBlock(dst io.Writer, src io.Reader, monitor bool) (int64, error) 
 	return CopyBuffer(dst, src, 1024, true, monitor)
 }
 
-func p(b []byte) {
+func print(b ...[]byte) {
 	format := colorkit.SpellColorString("%s", colorkit.GreenBg, colorkit.Yellow)
 	log.Printf(format, b)
 }
 
 func CopyBuffer(dst io.Writer, src io.Reader, bufLength int, block bool, monitor bool) (int64, error) {
-	if block && monitor == false {
+	native := block && monitor == false
+	if native {
 		return io.Copy(dst, src)
-	}
-
-	var back CopyBack
-	if monitor {
-		back = p
 	} else {
-		back = nil
+		intercept := lambda.If[BinaryInterceptor](monitor, print, nil)
+
+		buffer, err := CopyBufferCallBack(dst, src, bufLength, block, intercept)
+		return int64(len(buffer)), err
 	}
-	buffer, err := CopyBufferCallBack(dst, src, bufLength, block, back)
-	return int64(len(buffer)), err
 }
 
-type CopyBack func([]byte)
+type BinaryInterceptor func(...[]byte)
 
-func CopyBufferCallBack(dst io.Writer, src io.Reader, bufLength int, block bool, back CopyBack) (total []byte, err error) {
+func CopyBufferCallBack(dst io.Writer, src io.Reader, bufLength int, block bool, intercept BinaryInterceptor) (total []byte, err error) {
+	fromConn, okf := src.(net.Conn)
+	toConn, okt := dst.(net.Conn)
+	if okf && okt {
+	}
+	s := fmt.Sprintf("read(l-%v r-%v -> l-%v r-%v):\n", fromConn.LocalAddr().String(), fromConn.RemoteAddr().String(), toConn.LocalAddr().String(), toConn.RemoteAddr().String())
+	intercept([]byte(s))
 	//buf不会自动扩容
 	//buf := make([]byte, 0, bufLength)
 	buf := make([]byte, bufLength)
@@ -119,8 +124,8 @@ func CopyBufferCallBack(dst io.Writer, src io.Reader, bufLength int, block bool,
 	for {
 		nr, er := src.Read(buf)
 		if nr > 0 {
-			if back != nil {
-				back(buf[0:nr])
+			if intercept != nil {
+				intercept([]byte(s), buf[0:nr])
 			}
 			nw, ew := dst.Write(buf[0:nr])
 			if nw < 0 || nr < nw {

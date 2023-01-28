@@ -1,4 +1,4 @@
-package control
+package lambda
 
 import (
 	"testing"

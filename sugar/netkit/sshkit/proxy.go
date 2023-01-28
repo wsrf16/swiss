@@ -26,7 +26,7 @@ func TunnelServe(lAddress string, mediumProperty *SSHProperty, dAddress string) 
 	if err != nil {
 		return err
 	}
-	_, err = tcpkit.Transfer(client, server, 1, true, true)
+	_, err = tcpkit.Transfer(client, server, true)
 	return err
 }
 

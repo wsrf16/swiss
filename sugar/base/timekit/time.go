@@ -33,6 +33,18 @@ func Watch() time.Duration {
 	return enhause
 }
 
+func Time1Year() time.Time {
+	return time.Now().Add(365 * 24 * time.Hour)
+}
+
+func Time3Minutes() time.Time {
+	return time.Now().Add(3 * time.Minute)
+}
+
+func Time1Hour() time.Time {
+	return time.Now().Add(1 * time.Hour)
+}
+
 type TimeFormat = string
 
 const (
