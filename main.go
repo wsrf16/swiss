@@ -6,5 +6,4 @@ import (
 
 func main() {
 	logo.SetFormatter(&logo.JSONFormatter{PrettyPrint: true})
-
 }

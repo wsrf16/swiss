@@ -48,11 +48,12 @@ func Time1Hour() time.Time {
 type TimeFormat = string
 
 const (
-	NormalFormat      TimeFormat = "2006-01-02 15:04:05"
-	TightNormalFormat            = "20060102150405"
-	SlashNormalFormat            = "2006/01/02 15:04:05"
-	DateFormat                   = "2006-01-02"
-	SlashDateFormat              = "2006/01/02"
+	DateTimeFormat              TimeFormat = "2006-01-02 15:04:05"
+	DateTimeTightFormat                    = "20060102150405"
+	DateTimeSlashFormat                    = "2006/01/02 15:04:05"
+	DateOnlyFormat                         = "2006-01-02"
+	TimeOnlyFormat                         = "15:04:05"
+	DateTimeDateOnlySlashFormat            = "2006/01/02"
 )
 
 func Format(t time.Time, f TimeFormat) string {
@@ -62,19 +63,19 @@ func Format(t time.Time, f TimeFormat) string {
 type NormalTime time.Time
 
 func (t NormalTime) MarshalJSON() ([]byte, error) {
-	b := make([]byte, 0, len(NormalFormat)+2)
+	b := make([]byte, 0, len(DateTimeFormat)+2)
 	b = append(b, '"')
-	b = time.Time(t).AppendFormat(b, NormalFormat)
+	b = time.Time(t).AppendFormat(b, DateTimeFormat)
 	b = append(b, '"')
 	return b, nil
 }
 
 func (t *NormalTime) UnmarshalJSON(data []byte) (err error) {
-	now, err := time.ParseInLocation(`"`+NormalFormat+`"`, string(data), time.Local)
+	now, err := time.ParseInLocation(`"`+DateTimeFormat+`"`, string(data), time.Local)
 	*t = NormalTime(now)
 	return
 }
 
 func (t NormalTime) String() string {
-	return time.Time(t).Format(NormalFormat)
+	return time.Time(t).Format(DateTimeFormat)
 }
