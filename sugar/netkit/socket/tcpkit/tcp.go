@@ -169,12 +169,12 @@ func TransferFromListenToDial(lAddr *net.TCPAddr, dAddr *net.TCPAddr, autoReconn
 				log.Println(err)
 				return err
 			}
-			//server, err := serverConnFactory()
-			//if err != nil {
+			// server, err := serverConnFactory()
+			// if err != nil {
 			//    log.Println(err)
 			//    return err
-			//}
-			//go Transfer(client, server, 1, true, true)
+			// }
+			// go Transfer(client, server, 1, true, true)
 			go TransferDynamic(client, serverConnFactory, true)
 		}
 		return nil
@@ -210,14 +210,14 @@ func TransferFromListenToListen(lAddrFrom *net.TCPAddr, lAddrTo *net.TCPAddr, au
 				log.Println(err)
 				return err
 			}
-			//fmt.Println("-->" + client.RemoteAddr().String())
+			// fmt.Println("-->" + client.RemoteAddr().String())
 			closedOrder, err := Transfer(client, server, true)
 			if err != nil {
 				log.Println(err)
 				closedOrder = closedOrder
 				return err
 			}
-			//go TransferDynamic(client, serverConnFactory, true)
+			// go TransferDynamic(client, serverConnFactory, true)
 
 		}
 		return nil
@@ -254,14 +254,14 @@ func TransferFromDialToDial(dAddrFrom *net.TCPAddr, dAddrTo *net.TCPAddr, autoRe
 				time.Sleep(5 * time.Second)
 				return err
 			}
-			//fmt.Println("-->" + server.LocalAddr().String())
+			// fmt.Println("-->" + server.LocalAddr().String())
 			closedOrder, err := Transfer(client, server, true)
 			if err != nil {
 				log.Println(err)
 				closedOrder = closedOrder
 				break
 			}
-			//go TransferDynamic(client, serverConnFactory, true)
+			// go TransferDynamic(client, serverConnFactory, true)
 		}
 		return nil
 	})
@@ -269,12 +269,12 @@ func TransferFromDialToDial(dAddrFrom *net.TCPAddr, dAddrTo *net.TCPAddr, autoRe
 
 func TransferDynamic(client net.Conn, serverConnFactory socketkit.ConnFactoryFunc, closed bool) ([]int, error) {
 	server, err := serverConnFactory()
-	//server.SetDeadline(timekit.Time3Minutes())
-	//if server != nil {
+	// server.SetDeadline(timekit.Time3Minutes())
+	// if server != nil {
 	//    server.Close()
-	//}
-	//client.Close()
-	//return nil, nil
+	// }
+	// client.Close()
+	// return nil, nil
 
 	if err != nil {
 		log.Println(err)
@@ -320,16 +320,28 @@ func Transfer(client net.Conn, server net.Conn, closed bool) ([]int, error) {
 		}
 	}
 
-	//iokit.TransferRoundTrip(client, server)
+	// iokit.TransferRoundTrip(client, server)
 	return socketkit.TransferRoundTripWaitForCompleted(client, server, closed), nil
-	//return nil
+	// return nil
 }
 
-func Telnet(addr string) bool {
-	conn, err := net.DialTimeout("tcp", addr, 3*time.Second)
+func Telnet(addr string, timeout time.Duration) (bool, error) {
+	conn, err := net.DialTimeout("tcp", addr, timeout)
 	if err != nil || conn == nil {
-		return false
+		return false, err
 	} else {
-		return true
+		defer conn.Close()
+		return true, err
 	}
+}
+
+func TelnetN(addr string, times int, timeout time.Duration) (bool, error) {
+	for n := 0; n <= times; n++ {
+		ok, err := Telnet(addr, timeout)
+		if !ok && n < times {
+			continue
+		}
+		return ok, err
+	}
+	return true, nil
 }

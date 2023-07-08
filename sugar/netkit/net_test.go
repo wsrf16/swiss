@@ -1,6 +1,9 @@
 package netkit
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestConvert(t *testing.T) {
 	ipInt := IPv4ToInt("1.1.1.1")
@@ -21,4 +24,13 @@ func TestBeInSegment(t *testing.T) {
 	beInSegment2 := InSegment("1.1.1.1", "1.1.1.2-1.1.1.3")
 	t.Log(beInSegment1)
 	t.Log(beInSegment2)
+}
+
+func TestPing(t *testing.T) {
+	msg, err := Ping("163.com", time.Second*2)
+	if err != nil {
+		t.Log(err)
+	} else {
+		t.Log(msg)
+	}
 }

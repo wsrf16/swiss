@@ -24,12 +24,38 @@ func ResolvePacket1(packet []byte) SocksPacket1 {
 	return packet1
 }
 
-//func (p SocksPacket1) IsSocks() bool {
+type SocksPacket11 struct {
+	Packet    []byte
+	Version   byte
+	NUserName byte
+	UserName  []byte
+	NPassword byte
+	Password  []byte
+}
+
+func ResolvePacket2(packet []byte) SocksPacket11 {
+	packet11 := SocksPacket11{}
+	packet11.Packet = packet
+	cursor := byte(0)
+	packet11.Version = packet[cursor]
+	cursor += 1
+	packet11.NUserName = packet[cursor]
+	cursor += 1
+	packet11.UserName = packet[cursor : cursor+packet11.NUserName]
+	cursor += packet11.NUserName
+	packet11.NPassword = packet[cursor]
+	cursor += 1
+	packet11.Password = packet[cursor : cursor+packet11.NPassword]
+	cursor += packet11.NPassword
+	return packet11
+}
+
+// func (p SocksPacket1) IsSocks() bool {
 //    if p.Version != 4 && p.Version != 5 {
 //        return false
 //    }
 //    return true
-//}
+// }
 
 type SocksPacket2 struct {
 	Packet   []byte
@@ -41,7 +67,7 @@ type SocksPacket2 struct {
 	DST_PORT []byte
 }
 
-func BuildPacket2(packet []byte) SocksPacket2 {
+func BuildPacket3(packet []byte) SocksPacket2 {
 	packet2 := SocksPacket2{}
 	packet2.Packet = packet
 	packet2.Version = packet[0]

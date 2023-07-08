@@ -5,6 +5,7 @@ import (
 	"github.com/wsrf16/swiss/sugar/netkit/socket/socketkit"
 	"net"
 	"testing"
+	"time"
 )
 
 func TestSample(t *testing.T) {
@@ -18,14 +19,14 @@ func TestSample(t *testing.T) {
 			fmt.Println("accept error: ", err.Error())
 			continue
 		}
-		//go Channal(client, dstaddr, dsthost)
+		// go Channal(client, dstaddr, dsthost)
 
 		go func(client *net.TCPConn) {
-			//addr, err := tcpkit.NewTCP4Addr("192.168.0.133:8080")
+			// addr, err := tcpkit.NewTCP4Addr("192.168.0.133:8080")
 			tcpAddr, _ := net.ResolveTCPAddr("tcp", "192.168.0.133:8080")
 			conn, err := net.DialTCP("tcp", nil, tcpAddr)
 			println(err)
-			socketkit.TransferRoundTripWaitForCompleted(client, conn, 1)
+			socketkit.TransferRoundTripWaitForCompleted(client, conn, true)
 			client.Close()
 			conn.Close()
 		}(client)
@@ -61,9 +62,18 @@ func TestNAT(t *testing.T) {
 }
 
 func TestClassic(t *testing.T) {
-	//socket.TransferToHostServe("tcp", "0.0.0.0:8081")
-	//tcpkit.TransferToHostServe(":8081")
-	//udpkit.TransferToServe("udp", ":8081", "localhost:8084)
-	//socket.TransferToServe("tcp", ":8082", "192.168.0.133:22")
-	//tcpkit.TransferToServe("tcp", "0.0.0.0:8082", "192.168.0.133:8080")
+	// socket.TransferToHostServe("tcp", "0.0.0.0:8081")
+	// tcpkit.TransferToHostServe(":8081")
+	// udpkit.TransferToServe("udp", ":8081", "localhost:8084)
+	// socket.TransferToServe("tcp", ":8082", "192.168.0.133:22")
+	// tcpkit.TransferToServe("tcp", "0.0.0.0:8082", "192.168.0.133:8080")
+}
+
+func TestPing(t *testing.T) {
+	telnet, err := Telnet("163.com:801", time.Second*2)
+	if err != nil {
+		t.Log(err)
+	} else {
+		t.Log(telnet)
+	}
 }
