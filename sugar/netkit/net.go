@@ -28,14 +28,18 @@ func GetHostIp() (net.IP, error) {
 	return nil, errors.New("no valid ipv4 address founded")
 }
 
-func BytesToIPv4(b []byte) (string, error) {
+func BytesToIPv4String(b []byte) (string, error) {
 	if len(b) != 4 {
 		return "", errors.New("invalid data")
 	}
 	return strconv.Itoa(int(b[0])) + "." + strconv.Itoa(int(b[1])) + "." + strconv.Itoa(int(b[2])) + "." + strconv.Itoa(int(b[3])), nil
 }
 
-func BytesToIPv6(b []byte) string {
+func BytesToIPv4(b []byte) net.IP {
+	return net.IPv4(b[0], b[1], b[2], b[3])
+}
+
+func BytesToIPv6String(b []byte) string {
 	// [255 255 :: 255 255 :: 255 255 :: 255 255 :: 255 255]: 65535
 	return hex.EncodeToString(b[0:2]) + "::" + hex.EncodeToString(b[2:4]) + "::" + hex.EncodeToString(b[4:6]) + "::" + hex.EncodeToString(b[6:8]) + "::" + hex.EncodeToString(b[8:10])
 }

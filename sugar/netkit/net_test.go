@@ -1,11 +1,13 @@
 package netkit
 
 import (
+	"github.com/wsrf16/swiss/sugar/netkit/icmpkit"
 	"testing"
 	"time"
 )
 
 func TestConvert(t *testing.T) {
+	// 2130706433 = 127.0.0.1
 	ipInt := IPv4ToInt("1.1.1.1")
 	t.Log(ipInt)
 	ipString := IntToIPv4(ipInt)
@@ -27,7 +29,7 @@ func TestBeInSegment(t *testing.T) {
 }
 
 func TestPing(t *testing.T) {
-	msg, err := Ping("163.com", time.Second*2)
+	msg, err := icmpkit.Ping("163.com", time.Second*2)
 	if err != nil {
 		t.Log(err)
 	} else {

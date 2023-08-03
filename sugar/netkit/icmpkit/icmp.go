@@ -1,4 +1,4 @@
-package netkit
+package icmpkit
 
 import (
 	"net"

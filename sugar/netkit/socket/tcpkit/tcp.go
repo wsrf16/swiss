@@ -97,18 +97,18 @@ func ListenAndAccept(addr *net.TCPAddr) (*net.TCPListener, net.Conn, error) {
 	return listener, conn, nil
 }
 
-func TransferFromListenAddress(lAddress string) error {
+func TransferFromListenAddress(lAddress string, keepListening bool, listenerChannel chan *net.TCPListener) error {
 	lAddr, err := NewTCPAddr(lAddress)
 	if err != nil {
 		return err
 	}
 
-	return TransferFromListenToDial(lAddr, nil, true)
+	return TransferFromListenToDial(lAddr, nil, keepListening, listenerChannel)
 }
 
 // laddress: local-address, listen-address
 // daddress: dial-address, destination-address
-func TransferFromListenToDialAddress(lAddress string, dAddress string) error {
+func TransferFromListenToDialAddress(lAddress string, dAddress string, keepListening bool, listenerChannel chan *net.TCPListener) error {
 	lAddr, err := NewTCPAddr(lAddress)
 	if err != nil {
 		return err
@@ -118,10 +118,10 @@ func TransferFromListenToDialAddress(lAddress string, dAddress string) error {
 		return err
 	}
 
-	return TransferFromListenToDial(lAddr, dAddr, true)
+	return TransferFromListenToDial(lAddr, dAddr, keepListening, listenerChannel)
 }
 
-func TransferFromListenToListenAddress(lAddressFrom string, lAddressTo string) error {
+func TransferFromListenToListenAddress(lAddressFrom string, lAddressTo string, keepListening bool, srcListenerChannel chan *net.TCPListener, dstListenerChannel chan *net.TCPListener) error {
 	lAddrFrom, err := NewTCPAddr(lAddressFrom)
 	if err != nil {
 		return err
@@ -131,7 +131,7 @@ func TransferFromListenToListenAddress(lAddressFrom string, lAddressTo string) e
 		return err
 	}
 
-	return TransferFromListenToListen(lAddrFrom, lAddrTo, true)
+	return TransferFromListenToListen(lAddrFrom, lAddrTo, keepListening, srcListenerChannel, dstListenerChannel)
 }
 func TransferFromDialToDialAddress(dAddressFrom string, dAddressTo string) error {
 	dAddrFrom, err := NewTCPAddr(dAddressFrom)
@@ -146,94 +146,103 @@ func TransferFromDialToDialAddress(dAddressFrom string, dAddressTo string) error
 	return TransferFromDialToDial(dAddrFrom, dAddrTo, true)
 }
 
-func TransferFromListenToDial(lAddr *net.TCPAddr, dAddr *net.TCPAddr, autoReconnect bool) error {
-	return lambda.LoopAlwaysReturn(autoReconnect, func() error {
+func TransferFromListenToDial(lAddr *net.TCPAddr, dAddr *net.TCPAddr, keepListening bool, listenerChannel chan *net.TCPListener) error {
+	return lambda.LoopAlwaysReturn(keepListening, func() error {
 		listenerFrom, err := Listen(lAddr)
 		if err != nil {
 			return err
 		}
-		clientConnFactory := func() (net.Conn, error) {
+		if listenerChannel != nil {
+			listenerChannel <- listenerFrom
+		}
+
+		srcConnFactory := func() (net.Conn, error) {
 			return Accept(listenerFrom)
 		}
-		serverConnFactory := func() (net.Conn, error) {
+		dstConnFactory := func() (net.Conn, error) {
 			if dAddr == nil {
 				return nil, nil
 			} else {
 				return DialAddr(nil, dAddr)
 			}
 		}
-
 		for {
-			client, err := clientConnFactory()
+			src, err := srcConnFactory()
 			if err != nil {
 				log.Println(err)
 				return err
 			}
-			// server, err := serverConnFactory()
+			// dst, err := dstConnFactory()
 			// if err != nil {
 			//    log.Println(err)
 			//    return err
 			// }
-			// go Transfer(client, server, 1, true, true)
-			go TransferDynamic(client, serverConnFactory, true)
+			// go Transfer(src, dst, 1, true, true)
+			go TransferDynamic(src, dstConnFactory, true)
 		}
 		return nil
 	})
 }
 
-func TransferFromListenToListen(lAddrFrom *net.TCPAddr, lAddrTo *net.TCPAddr, autoReconnect bool) error {
-	return lambda.LoopAlwaysReturn(autoReconnect, func() error {
+func TransferFromListenToListen(lAddrFrom *net.TCPAddr, lAddrTo *net.TCPAddr, keepListening bool, srcListenerChannel chan *net.TCPListener, dstListenerChannel chan *net.TCPListener) error {
+	return lambda.LoopAlwaysReturn(keepListening, func() error {
 		listenerFrom, err := Listen(lAddrFrom)
 		if err != nil {
 			return err
+		}
+		if srcListenerChannel != nil {
+			srcListenerChannel <- listenerFrom
 		}
 		listenerTo, err := Listen(lAddrTo)
 		if err != nil {
 			return err
 		}
+		if dstListenerChannel != nil {
+			dstListenerChannel <- listenerTo
+		}
 
-		serverConnFactory := func() (net.Conn, error) {
+		dstConnFactory := func() (net.Conn, error) {
 			return Accept(listenerTo)
 		}
-		clientConnFactory := func() (net.Conn, error) {
+		srcConnFactory := func() (net.Conn, error) {
 			return Accept(listenerFrom)
 		}
 		for {
-			server, err := serverConnFactory()
+			dst, err := dstConnFactory()
 			if err != nil {
 				log.Println(err)
 				time.Sleep(3 * time.Second)
 				return err
 			}
-			client, err := clientConnFactory()
+			src, err := srcConnFactory()
 			if err != nil {
 				log.Println(err)
 				return err
 			}
-			// fmt.Println("-->" + client.RemoteAddr().String())
-			closedOrder, err := Transfer(client, server, true)
+			// fmt.Println("-->" + src.RemoteAddr().String())
+			closedOrder, err := Transfer(src, dst, true)
 			if err != nil {
 				log.Println(err)
 				closedOrder = closedOrder
 				return err
 			}
-			// go TransferDynamic(client, serverConnFactory, true)
+			// go TransferDynamic(src, dstConnFactory, true)
 
 		}
 		return nil
 	})
 }
 
-func TransferFromDialToDial(dAddrFrom *net.TCPAddr, dAddrTo *net.TCPAddr, autoReconnect bool) error {
-	return lambda.LoopAlwaysReturn(autoReconnect, func() error {
-		clientConnFactory := func() (net.Conn, error) {
+func TransferFromDialToDial(dAddrFrom *net.TCPAddr, dAddrTo *net.TCPAddr, keepListening bool) error {
+	return lambda.LoopAlwaysReturn(keepListening, func() error {
+		srcConnFactory := func() (net.Conn, error) {
 			if dAddrFrom == nil {
 				return nil, nil
 			} else {
 				return DialAddr(nil, dAddrFrom)
 			}
 		}
-		serverConnFactory := func() (net.Conn, error) {
+		dstConnFactory := func() (net.Conn, error) {
 			if dAddrTo == nil {
 				return nil, nil
 			} else {
@@ -242,54 +251,54 @@ func TransferFromDialToDial(dAddrFrom *net.TCPAddr, dAddrTo *net.TCPAddr, autoRe
 		}
 
 		for {
-			client, err := clientConnFactory()
+			src, err := srcConnFactory()
 			if err != nil {
 				log.Println(err)
 				time.Sleep(5 * time.Second)
 				return err
 			}
-			server, err := serverConnFactory()
+			dst, err := dstConnFactory()
 			if err != nil {
 				log.Println(err)
 				time.Sleep(5 * time.Second)
 				return err
 			}
-			// fmt.Println("-->" + server.LocalAddr().String())
-			closedOrder, err := Transfer(client, server, true)
+			// fmt.Println("-->" + dst.LocalAddr().String())
+			closedOrder, err := Transfer(src, dst, true)
 			if err != nil {
 				log.Println(err)
 				closedOrder = closedOrder
 				break
 			}
-			// go TransferDynamic(client, serverConnFactory, true)
+			// go TransferDynamic(src, dstConnFactory, true)
 		}
 		return nil
 	})
 }
 
-func TransferDynamic(client net.Conn, serverConnFactory socketkit.ConnFactoryFunc, closed bool) ([]int, error) {
-	server, err := serverConnFactory()
-	// server.SetDeadline(timekit.Time3Minutes())
-	// if server != nil {
-	//    server.Close()
+func TransferDynamic(src net.Conn, dstConnFactory socketkit.ConnFactoryFunc, closed bool) ([]int, error) {
+	dst, err := dstConnFactory()
+	// dst.SetDeadline(timekit.Time3Minutes())
+	// if dst != nil {
+	//    dst.Close()
 	// }
-	// client.Close()
+	// src.Close()
 	// return nil, nil
 
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
-	return Transfer(client, server, closed)
+	return Transfer(src, dst, closed)
 }
 
-func Transfer(client net.Conn, server net.Conn, closed bool) ([]int, error) {
+func Transfer(src net.Conn, dst net.Conn, closed bool) ([]int, error) {
 	if closed {
-		defer socketkit.Close(client, server)
+		defer socketkit.Close(src, dst)
 	}
 
-	if server == nil {
-		readBytes, err := iokit.ReadAllBytesBlockless(client)
+	if dst == nil {
+		readBytes, err := iokit.ReadAllBytesBlockless(src)
 		if err != nil {
 			return nil, err
 		}
@@ -299,29 +308,29 @@ func Transfer(client net.Conn, server net.Conn, closed bool) ([]int, error) {
 			return nil, err
 		}
 
-		server, err = packet.DialDSTConn()
+		dst, err = packet.DialDSTConn()
 		if err != nil {
 			return nil, err
 		}
-		if server != nil && closed {
-			defer socketkit.Close(server)
+		if dst != nil && closed {
+			defer socketkit.Close(dst)
 		}
 
 		if packet.IsMethodConnect() {
-			_, err := iokit.WriteString(client, ConnectEstablished)
+			_, err := iokit.WriteString(src, ConnectEstablished)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			_, err := iokit.Write(server, readBytes)
+			_, err := iokit.Write(dst, readBytes)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	// iokit.TransferRoundTrip(client, server)
-	return socketkit.TransferRoundTripWaitForCompleted(client, server, closed), nil
+	// iokit.TransferRoundTrip(src, dst)
+	return socketkit.TransferRoundTripWaitForCompleted(src, dst, closed), nil
 	// return nil
 }
 

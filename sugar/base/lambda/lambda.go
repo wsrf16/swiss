@@ -6,14 +6,21 @@ func LoopAlways(always bool, do func()) {
 	}
 }
 
+//	func LoopAlwaysReturn[T any](always bool, do func() T) T {
+//		if always {
+//			for {
+//				do()
+//			}
+//		} else {
+//			return do()
+//		}
+//	}
 func LoopAlwaysReturn[T any](always bool, do func() T) T {
-	if always {
-		for {
-			do()
-		}
-	} else {
-		return do()
+	var t T
+	for b := true; b; b = always {
+		t = do()
 	}
+	return t
 }
 
 func If[T any](condition bool, match, notMatch T) T {

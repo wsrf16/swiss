@@ -69,7 +69,7 @@ func Listen(addr *net.UDPAddr) (net.Conn, error) {
 	return net.ListenUDP(addr.Network(), addr)
 }
 
-func TransferFromListenToDialAddress(lAddress string, dAddress string) error {
+func TransferFromListenToDialAddress(lAddress string, dAddress string, listenerChannel chan net.Conn) error {
 	lAddr, err := NewUDPAddr(lAddress)
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func TransferFromListenToDialAddress(lAddress string, dAddress string) error {
 		return err
 	}
 
-	return TransferFromListenToDial(lAddr, dAddr, true)
+	return TransferFromListenToDial(lAddr, dAddr, true, listenerChannel)
 }
 
 func TransferFromListenToListenAddress(lAddressFrom string, lAddressTo string) error {
@@ -107,12 +107,12 @@ func TransferFromDialToDialAddress(dAddressFrom string, dAddressTo string) error
 	return TransferFromDialToDial(dAddrFrom, dAddrTo, true)
 }
 
-func TransferFromListenToDial(lAddr *net.UDPAddr, dAddr *net.UDPAddr, autoReconnect bool) error {
-	return lambda.LoopAlwaysReturn(autoReconnect, func() error {
-		clientConnFactory := func() (net.Conn, error) {
+func TransferFromListenToDial(lAddr *net.UDPAddr, dAddr *net.UDPAddr, keepListening bool, listenerChannel chan net.Conn) error {
+	return lambda.LoopAlwaysReturn(keepListening, func() error {
+		srcConnFactory := func() (net.Conn, error) {
 			return Listen(lAddr)
 		}
-		serverConnFactory := func() (net.Conn, error) {
+		dstConnFactory := func() (net.Conn, error) {
 			if dAddr == nil {
 				return nil, nil
 			} else {
@@ -121,86 +121,89 @@ func TransferFromListenToDial(lAddr *net.UDPAddr, dAddr *net.UDPAddr, autoReconn
 		}
 
 		for {
-			client, err := clientConnFactory()
+			src, err := srcConnFactory()
 			if err != nil {
 				log.Println(err)
 				return err
 			}
-			//server, err := serverConnFactory()
+			if listenerChannel != nil {
+				listenerChannel <- src
+			}
+			//dst, err := dstConnFactory()
 			//if err != nil {
 			//    log.Println(err)
 			//    return err
 			//}
-			//Transfer(client, server, 1, true, true)
-			TransferDynamic(client, serverConnFactory, true)
+			//Transfer(src, dst, 1, true, true)
+			TransferDynamic(src, dstConnFactory, true)
 		}
 		return nil
 	})
 }
 
-func TransferFromListenToListen(lAddrFrom *net.UDPAddr, lAddrTo *net.UDPAddr, autoReconnect bool) error {
-	return lambda.LoopAlwaysReturn(autoReconnect, func() error {
-		clientConnFactory := func() (net.Conn, error) {
+func TransferFromListenToListen(lAddrFrom *net.UDPAddr, lAddrTo *net.UDPAddr, keepListening bool) error {
+	return lambda.LoopAlwaysReturn(keepListening, func() error {
+		srcConnFactory := func() (net.Conn, error) {
 			return Listen(lAddrFrom)
 		}
-		serverConnFactory := func() (net.Conn, error) {
+		dstConnFactory := func() (net.Conn, error) {
 			return Listen(lAddrTo)
 		}
 
 		for {
-			client, err := clientConnFactory()
+			src, err := srcConnFactory()
 			if err != nil {
 				log.Println(err)
 				return err
 			}
-			//server, err := serverConnFactory()
+			//dst, err := dstConnFactory()
 			//if err != nil {
 			//    log.Println(err)
 			//    return err
 			//}
-			//Transfer(client, server, true)
-			TransferDynamic(client, serverConnFactory, true)
+			//Transfer(src, dst, true)
+			TransferDynamic(src, dstConnFactory, true)
 		}
 		return nil
 	})
 }
 
-func TransferFromDialToDial(dAddrFrom *net.UDPAddr, dAddrTo *net.UDPAddr, autoReconnect bool) error {
-	return lambda.LoopAlwaysReturn(autoReconnect, func() error {
-		clientConnFactory := func() (net.Conn, error) {
+func TransferFromDialToDial(dAddrFrom *net.UDPAddr, dAddrTo *net.UDPAddr, keepListening bool) error {
+	return lambda.LoopAlwaysReturn(keepListening, func() error {
+		srcConnFactory := func() (net.Conn, error) {
 			return DialAddr(nil, dAddrFrom)
 		}
-		serverConnFactory := func() (net.Conn, error) {
+		dstConnFactory := func() (net.Conn, error) {
 			return DialAddr(nil, dAddrTo)
 		}
 
 		for {
-			client, err := clientConnFactory()
+			src, err := srcConnFactory()
 			if err != nil {
 				log.Println(err)
 				return err
 			}
-			//server, err := serverConnFactory()
+			//dst, err := dstConnFactory()
 			//if err != nil {
 			//    log.Println(err)
 			//    return err
 			//}
-			//Transfer(client, server, 1, true, true)
-			TransferDynamic(client, serverConnFactory, true)
+			//Transfer(src, dst, 1, true, true)
+			TransferDynamic(src, dstConnFactory, true)
 		}
 		return nil
 	})
 }
 
-func TransferDynamic(client net.Conn, serverConnFactory socketkit.ConnFactoryFunc, closed bool) ([]int, error) {
-	server, err := serverConnFactory()
+func TransferDynamic(src net.Conn, dstConnFactory socketkit.ConnFactoryFunc, closed bool) ([]int, error) {
+	dst, err := dstConnFactory()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
-	return Transfer(client, server, closed)
+	return Transfer(src, dst, closed)
 }
 
-func Transfer(client net.Conn, server net.Conn, closed bool) ([]int, error) {
-	return socketkit.TransferRoundTripWaitForCompleted(client, server, closed), nil
+func Transfer(src net.Conn, dst net.Conn, closed bool) ([]int, error) {
+	return socketkit.TransferRoundTripWaitForCompleted(src, dst, closed), nil
 }

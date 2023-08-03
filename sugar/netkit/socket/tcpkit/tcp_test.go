@@ -35,7 +35,7 @@ func TestSample(t *testing.T) {
 
 // forward proxy
 func TestTransferFromListenAddress(t *testing.T) {
-	err := TransferFromListenAddress(":8082")
+	err := TransferFromListenAddress(":8082", true, nil)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -43,7 +43,7 @@ func TestTransferFromListenAddress(t *testing.T) {
 
 // reverse proxy
 func TestTransferFromListenToDialAddress(t *testing.T) {
-	err := TransferFromListenToDialAddress(":8082", "mecs.com:8080")
+	err := TransferFromListenToDialAddress(":8082", "mecs.com:8080", true, nil)
 	if err != nil {
 		t.Error(err.Error())
 	}

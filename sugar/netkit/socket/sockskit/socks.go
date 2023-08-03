@@ -11,30 +11,39 @@ import (
 	"net"
 )
 
-func TransferFromListenAddress(lAddress string, config *SocksConfig) error {
+func TransferFromListenAddress(lAddress string, config *SocksConfig, keepListening bool, listenerChannel chan *net.TCPListener) error {
 	lAddr, err := tcpkit.NewTCPAddr(lAddress)
 	if err != nil {
 		return err
 	}
 
-	return TransferFromListen(lAddr, true, config)
+	return TransferFromListen(lAddr, config, keepListening, listenerChannel)
 }
 
-func TransferFromListen(laddr *net.TCPAddr, autoReconnect bool, config *SocksConfig) error {
-	return lambda.LoopAlwaysReturn(autoReconnect, func() error {
+func TransferFromListen(laddr *net.TCPAddr, config *SocksConfig, keepListening bool, listenerChannel chan *net.TCPListener) error {
+	return lambda.LoopAlwaysReturn(keepListening, func() error {
 		listener, err := tcpkit.Listen(laddr)
 		if err != nil {
 			return err
 		}
+		if listenerChannel != nil {
+			listenerChannel <- listener
+		}
 
 		for {
-			client, err := tcpkit.Accept(listener)
+			src, err := tcpkit.Accept(listener)
 			if err != nil {
 				return err
 			}
-			client.SetDeadline(timekit.Time1Year())
+			src.SetDeadline(timekit.Time1Year())
 
-			go Transfer(client, true, config)
+			//go Transfer(src, true, config, true)
+			go func() {
+				_, err := Transfer(src, true, config, true)
+				if err != nil {
+					log.Println(err)
+				}
+			}()
 		}
 		return nil
 	})
@@ -57,29 +66,39 @@ type Credential struct {
 	Password string
 }
 
-func Transfer(client net.Conn, closed bool, config *SocksConfig) ([]int, error) {
+func Transfer(src net.Conn, closed bool, config *SocksConfig, recoverd bool) ([]int, error) {
 	if closed {
-		defer socketkit.Close(client)
+		defer socketkit.Close(src)
+	}
+	if recoverd {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println(err)
+			}
+		}()
 	}
 
 	// round 1
-	readBytes, err := iokit.ReadAllBytesBlockless(client)
+	readBytes, err := iokit.ReadAllBytesBlockless(src)
 	if err != nil {
 		return nil, err
 	}
-	packet1 := ResolvePacket1(readBytes)
+	packet1, err := ResolvePacket1(readBytes)
+	if err != nil {
+		return nil, err
+	}
 	if packet1.Version != 5 {
 		return nil, errors.New("该协议不是socks5协议")
 	} else {
 		log.Printf("socks: version-%d\n", packet1.Version)
 	}
 	if config == nil {
-		client.Write([]byte{0x05, 0x00})
+		src.Write([]byte{0x05, 0x00})
 	} else {
-		client.Write([]byte{0x05, 0x02})
+		src.Write([]byte{0x05, 0x02})
 
 		// round 2
-		readBytes, err = iokit.ReadAllBytesBlockless(client)
+		readBytes, err = iokit.ReadAllBytesBlockless(src)
 		if err != nil {
 			return nil, err
 		}
@@ -91,18 +110,18 @@ func Transfer(client net.Conn, closed bool, config *SocksConfig) ([]int, error) 
 		}
 
 		if string(packet2.UserName) == credential.Username && string(packet2.Password) == credential.Password {
-			_, err := client.Write([]byte{0x05, 0x00})
+			_, err := src.Write([]byte{0x05, 0x00})
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			client.Write([]byte{0x05, 0x01})
+			src.Write([]byte{0x05, 0x01})
 			return nil, errors.New("authentication failed")
 		}
 	}
 
 	// round 3
-	readBytes, err = iokit.ReadAllBytesBlockless(client)
+	readBytes, err = iokit.ReadAllBytesBlockless(src)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +129,7 @@ func Transfer(client net.Conn, closed bool, config *SocksConfig) ([]int, error) 
 	if packet3.Version != 5 {
 		return nil, errors.New("该协议不是socks5协议")
 	}
-	client.Write([]byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	src.Write([]byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 
 	address, err := packet3.GetAddress()
 	if err != nil {
@@ -118,15 +137,15 @@ func Transfer(client net.Conn, closed bool, config *SocksConfig) ([]int, error) 
 	}
 	log.Printf("type: socks  version: %d  address: \"%s\"\n", packet3.Version, address)
 
-	server, err := tcpkit.DialAddress("", address)
+	dst, err := tcpkit.DialAddress("", address)
 	if err != nil {
 		return nil, err
 	}
-	server.SetDeadline(timekit.Time1Year())
+	dst.SetDeadline(timekit.Time1Year())
 
 	if closed {
-		defer socketkit.Close(server)
+		defer socketkit.Close(dst)
 	}
 
-	return socketkit.TransferRoundTripWaitForCompleted(client, server, closed), nil
+	return socketkit.TransferRoundTripWaitForCompleted(src, dst, closed), nil
 }

@@ -70,16 +70,14 @@ func GetSize(file multipart.File) int64 {
 }
 
 func ListenAndServe(addr string, patternHandlerMap PatternHandlerMap) (*http.ServeMux, error) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		for pattern, handler := range patternHandlerMap {
 			if match, err := regexp.MatchString(pattern, r.URL.Path); match && err == nil {
 				handler(w, r)
 			}
 		}
-	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", handler)
+	})
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		return nil, err
 	}

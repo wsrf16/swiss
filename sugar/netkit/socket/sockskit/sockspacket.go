@@ -15,13 +15,16 @@ type SocksPacket1 struct {
 	Methods  []byte
 }
 
-func ResolvePacket1(packet []byte) SocksPacket1 {
+func ResolvePacket1(packet []byte) (*SocksPacket1, error) {
 	packet1 := SocksPacket1{}
 	packet1.Packet = packet
+	if len(packet) < 4 {
+		return nil, errors.New("wrong socks packet.")
+	}
 	packet1.Version = packet[0]
 	packet1.NMethods = packet[1]
 	packet1.Methods = packet[2:]
-	return packet1
+	return &packet1, nil
 }
 
 type SocksPacket11 struct {
@@ -33,7 +36,7 @@ type SocksPacket11 struct {
 	Password  []byte
 }
 
-func ResolvePacket2(packet []byte) SocksPacket11 {
+func ResolvePacket2(packet []byte) *SocksPacket11 {
 	packet11 := SocksPacket11{}
 	packet11.Packet = packet
 	cursor := byte(0)
@@ -47,7 +50,7 @@ func ResolvePacket2(packet []byte) SocksPacket11 {
 	cursor += 1
 	packet11.Password = packet[cursor : cursor+packet11.NPassword]
 	cursor += packet11.NPassword
-	return packet11
+	return &packet11
 }
 
 // func (p SocksPacket1) IsSocks() bool {
@@ -102,7 +105,7 @@ func (p SocksPacket2) GetPort() int {
 func (p SocksPacket2) GetAddr() (string, error) {
 	switch p.Packet[3] {
 	case 0x01:
-		addr, err := netkit.BytesToIPv4(p.DST_ADDR)
+		addr, err := netkit.BytesToIPv4String(p.DST_ADDR)
 		if err != nil {
 			return "", err
 		}
