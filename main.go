@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/wsrf16/swiss/module/mq/kafka"
 	"github.com/wsrf16/swiss/sugar/logo"
+	"github.com/wsrf16/swiss/sugar/netkit/socket/sockskit"
 	"io"
 	"math/rand"
 	"net"
@@ -16,6 +17,15 @@ type Item struct {
 }
 
 func main() {
+	err := sockskit.TransferFromListenAddress(":1080", nil, true, nil)
+	if err != nil {
+		logo.Error("a", err)
+	}
+	//packet, err2 := icmp.ListenPacket("ip4:icmp", "192.168.0.103")
+	//fmt.Println(packet, err2)
+	//packet, err2 = icmp.ListenPacket("ip", "192.168.0.103")
+	//fmt.Println(packet, err2)
+
 	items := make([]Item, 2, 10)
 	items[0] = Item{}
 	items[0].A = 0

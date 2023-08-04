@@ -30,7 +30,8 @@ func (p HttpPacket) IsMethodConnect() bool {
 }
 
 func (p HttpPacket) GetAddress() string {
-	return p.Host + ":" + strconv.Itoa(p.Port)
+	return net.JoinHostPort(p.Host, strconv.Itoa(p.Port))
+	//return p.Host + ":" + strconv.Itoa(p.Port)
 }
 
 func (p HttpPacket) DialDSTConn() (net.Conn, error) {

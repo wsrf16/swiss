@@ -18,7 +18,7 @@ type SocksPacket1 struct {
 func ResolvePacket1(packet []byte) (*SocksPacket1, error) {
 	packet1 := SocksPacket1{}
 	packet1.Packet = packet
-	if len(packet) < 4 {
+	if len(packet) < 3 {
 		return nil, errors.New("wrong socks packet.")
 	}
 	packet1.Version = packet[0]

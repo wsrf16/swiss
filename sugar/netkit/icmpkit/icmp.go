@@ -61,3 +61,7 @@ func Ping(host string, timeout time.Duration) ([]byte, error) {
 
 	return msg[:n], nil
 }
+
+//func ListenPacket(network, address string) (*icmp.PacketConn, error) {
+//    return icmp.ListenPacket(network, address)
+//}

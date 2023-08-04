@@ -52,7 +52,7 @@ func TestTransferFromListenToDialAddress(t *testing.T) {
 func TestNAT(t *testing.T) {
 	listenAddressFrom := ":9090"
 	listenAddressTo := ":9091"
-	go TransferFromListenToListenAddress(listenAddressFrom, listenAddressTo)
+	go TransferFromListenToListenAddress(listenAddressFrom, listenAddressTo, true, nil, nil)
 
 	dialAddressFrom := "127.0.0.1:9091"
 	dialAddressTo := "mecs.com:7777"

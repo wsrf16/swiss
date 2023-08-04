@@ -7,6 +7,7 @@ import (
 	"github.com/wsrf16/swiss/sugar/io/iokit"
 	"github.com/wsrf16/swiss/sugar/netkit/socket/socketkit"
 	"github.com/wsrf16/swiss/sugar/netkit/socket/tcpkit"
+	"golang.org/x/net/proxy"
 	"log"
 	"net"
 )
@@ -148,4 +149,17 @@ func Transfer(src net.Conn, closed bool, config *SocksConfig, recoverd bool) ([]
 	}
 
 	return socketkit.TransferRoundTripWaitForCompleted(src, dst, closed), nil
+}
+
+func Dial(network, address string, auth *proxy.Auth, forward proxy.Dialer) (net.Conn, error) {
+	auth = &proxy.Auth{User: auth.User, Password: auth.Password}
+	dialer, err := proxy.SOCKS5(network, address, auth, forward)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := dialer.Dial(network, address)
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
 }
