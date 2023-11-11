@@ -21,7 +21,7 @@ var (
 	DisableColor = false
 )
 
-func SpellColorString(s string, colors ...string) string {
+func Spell(text string, colors ...string) string {
 	pre := strings.Join(colors, "")
-	return pre + s + Reset
+	return pre + text + Reset
 }

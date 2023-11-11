@@ -12,7 +12,7 @@ type Person struct {
 	Name     string      `json:"name"`
 }
 
-func Marshal(t *testing.T) {
+func TestMarshal(t *testing.T) {
 	normalTime := NormalTime(time.Now())
 	var p = Person{Name: "leon", Birthday: &normalTime}
 	data, err := jsonkit.Marshal(p)

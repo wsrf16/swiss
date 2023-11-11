@@ -52,7 +52,9 @@ type Fields = logrus.Fields
 
 type Entry = logrus.Entry
 
-type Logger = logrus.Logger
+type Logger struct {
+	logrus.Logger
+}
 
 // type JSONFormatter struct {
 //    logrus.JSONFormatter
@@ -62,22 +64,39 @@ type Logger = logrus.Logger
 //    logrus.TextFormatter
 // }
 
-var log *Logger = logrus.New()
+var log *Logger = new()
 
 var once sync.Once
 
+func new() *Logger {
+	tlog := &Logger{}
+	// SetReportCaller(true)
+	tlog.SetFormatter(&JSONFormatter{DisableHTMLEscape: true})
+	// SetFormatter(&TextFormatter{
+	// 	FullTimestamp: true,
+	// 	ForceQuote:    true,
+	// })
+	tlog.SetOutput(os.Stdout)
+	tlog.SetLevel(InfoLevel)
+	// tlog.AddHook(&DefaultFieldsHook{})
+
+	return tlog
+}
+
+func defaultInstant() {
+	// SetReportCaller(true)
+	SetFormatter(&JSONFormatter{DisableHTMLEscape: true})
+	// SetFormatter(&TextFormatter{
+	// 	FullTimestamp: true,
+	// 	ForceQuote:    true,
+	// })
+	SetOutput(os.Stdout)
+	SetLevel(InfoLevel)
+	// AddHook(&DefaultFieldsHook{})
+}
+
 func init() {
-	once.Do(func() {
-		// SetReportCaller(true)
-		SetFormatter(&JSONFormatter{})
-		// SetFormatter(&TextFormatter{
-		// 	FullTimestamp: true,
-		// 	ForceQuote:    true,
-		// })
-		SetOutput(os.Stdout)
-		SetLevel(InfoLevel)
-		AddHook(&DefaultFieldsHook{})
-	})
+	once.Do(defaultInstant)
 }
 
 func SetReportCaller(reportCaller bool) {
@@ -103,3 +122,27 @@ func WithFields(fields Fields) *Entry {
 func AddHook(hook Hook) {
 	log.AddHook(hook)
 }
+
+// func (log *Logger) SetReportCaller(reportCaller bool) {
+//    log.SetReportCaller(reportCaller)
+// }
+//
+// func (log *Logger) SetFormatter(formatter Formatter) {
+//    log.SetFormatter(formatter)
+// }
+//
+// func (log *Logger) SetLevel(level Level) {
+//    log.SetLevel(level)
+// }
+//
+// func (log *Logger) SetOutput(output io.Writer) {
+//    log.SetOutput(output)
+// }
+//
+// func (log *Logger) WithFields(fields Fields) *Entry {
+//    return log.WithFields(fields)
+// }
+//
+// func (log *Logger) AddHook(hook Hook) {
+//    log.AddHook(hook)
+// }

@@ -5,17 +5,22 @@ import (
 	"os"
 )
 
-var jsonIterator = jsoniter.ConfigCompatibleWithStandardLibrary
+// var jsonIterator = jsoniter.ConfigCompatibleWithStandardLibrary
+var jsonIterator = jsoniter.ConfigFastest
 
-func Marshal(t interface{}) (string, error) {
-	b, err := jsonIterator.Marshal(t)
-	return string(b), err
+func Marshal(t interface{}) ([]byte, error) {
+	return jsonIterator.Marshal(t)
 }
 
 func Unmarshal(j string, t interface{}) error {
 	b := []byte(j)
 	err := jsonIterator.Unmarshal(b, t)
 	return err
+}
+
+func MarshalToJson(t interface{}) (string, error) {
+	b, err := jsonIterator.Marshal(t)
+	return string(b), err
 }
 
 func UnmarshalSToT[T interface{}](j string) (*T, error) {
@@ -88,7 +93,7 @@ func DeepClone[T any](t T) (*T, error) {
 	if err != nil {
 		return nil, err
 	}
-	return UnmarshalSToT[T](marshal)
+	return UnmarshalBToT[T](marshal)
 }
 
 func DeepCloneSimilar[T any](t any) (*T, error) {
@@ -96,5 +101,5 @@ func DeepCloneSimilar[T any](t any) (*T, error) {
 	if err != nil {
 		return nil, err
 	}
-	return UnmarshalSToT[T](marshal)
+	return UnmarshalBToT[T](marshal)
 }

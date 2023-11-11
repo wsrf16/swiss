@@ -83,6 +83,15 @@ func JoinURL(parts ...string) string {
 	return url
 }
 
+// func JoinURL(url ...string) string {
+// 	base, next := "", ""
+// 	for _, v := range url {
+// 		next = TrimAll(v, "/")
+// 		base = fmt.Sprintf("%s/%s", base, next)
+// 	}
+// 	return base
+// }
+
 // func RuneCountInString(s string) int {return 1}
 
 // func Base64Bytes(p []byte, w ios.Writer) (int, error) {

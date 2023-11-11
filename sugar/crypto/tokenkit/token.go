@@ -33,7 +33,7 @@ type TokenStruct struct {
 
 func marshal(pwd string, salt string, accessTime int64) (string, error) {
 	tokenStruct := TokenStruct{Pwd: pwd, Salt: salt, Time: accessTime}
-	if mar, err := jsonkit.Marshal(tokenStruct); err != nil {
+	if mar, err := jsonkit.MarshalToJson(tokenStruct); err != nil {
 		return "", err
 	} else {
 		return mar, nil

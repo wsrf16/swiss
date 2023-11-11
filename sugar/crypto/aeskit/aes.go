@@ -1,162 +1,142 @@
 package aeskit
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
-	"io"
+	"bytes"
+	"errors"
+	"github.com/wsrf16/swiss/sugar/crypto/aeskit/cbckit"
+	"github.com/wsrf16/swiss/sugar/crypto/aeskit/cfbkit"
+	"github.com/wsrf16/swiss/sugar/crypto/aeskit/gcmkit"
+	"github.com/wsrf16/swiss/sugar/crypto/aeskit/plainkit"
+	"github.com/wsrf16/swiss/sugar/encoding/base64kit"
+	"strings"
 )
 
-//func Encrypt(data, key []byte) ([]byte, error) {
-//    //md5sum := md5.Sum(key)
-//    block, err := aes.NewCipher(key)
-//    if err != nil {
-//        return nil, err
-//    }
-//    iv := make([]byte, block.BlockSize())
-//    _, err = io.ReadFull(rand.Reader, iv)
-//    if err != nil {
-//        return nil, err
-//    }
-//
-//    stream := cipher.NewCFBEncrypter(block, iv)
-//    dst := make([]byte, block.BlockSize())
-//    stream.XORKeyStream(dst, data)
-//    return dst, nil
+//type Encrypter interface {
+//    Encrypt([]byte, []byte) []byte
 //}
 //
-//func Decrypt(data, key []byte) ([]byte, error) {
-//   //md5sum := md5.Sum(key)
-//   block, err := aes.NewCipher(key)
-//   if err != nil {
-//       return nil, err
-//   }
-//   blockSize := block.BlockSize()
-//   BlockMode := cipher.NewCFBDecrypter(block, key[:blockSize])
-//   dst := make([]byte, len(data))
-//   BlockMode.CryptBlocks(dst, data)
-//   return dst, nil
+//type Decrypter interface {
+//    Decrypt([]byte, []byte) []byte
 //}
 
-//func Decrypt(crypted, key []byte) ([]byte, error) {
-//    block, err := aes.NewCipher(key)
-//    if err != nil {
-//        return nil, err
-//    }
-//    blockSize := block.BlockSize()
-//    blockMode := cipher.NewCBCDecrypter(block, key[:blockSize])
-//    origData := make([]byte, len(crypted))
-//    blockMode.CryptBlocks(origData, crypted)
-//    return origData, nil
-//}
-
-///////////////////////
-//func Encrypt(message string, key []byte) (encoded string, err error) {
-//    //从输入字符串创建字节切片
-//    plainText := []byte(message)
-//
-//    //使用密钥创建新的 AES 密码
-//    block, err := aes.NewCipher(key)
-//
-//    //如果 NewCipher 失败，退出：
-//    if err != nil {
-//        return
-//    }
-//
-//    // ^ 使密文成为大小为 BlockSize + 消息长度的字节切片,这样传值后修改不会更改底层数组
-//    cipherText := make([]byte, aes.BlockSize+len(plainText))
-//
-//    // ^ iv 是初始化向量 (16字节)
-//    iv := cipherText[:aes.BlockSize]
-//    if _, err = io.ReadFull(rand.Reader, iv); err != nil {
-//        return
-//    }
-//
-//    // ^ 加密数据,给定加密算法用的密钥,以及初始化向量
-//    stream := cipher.NewCFBEncrypter(block, iv)
-//    stream.XORKeyStream(cipherText[aes.BlockSize:], plainText)
-//
-//    //返回以base64编码的字符串
-//    return base64.RawStdEncoding.EncodeToString(cipherText), err
-//}
-//
-//func Decrypt(secure string, key []byte) (decoded string, err error) {
-//    //删除 base64 编码：
-//    cipherText, err := base64.RawStdEncoding.DecodeString(secure)
-//
-//    //如果解码字符串失败，退出：
-//    if err != nil {
-//        return
-//    }
-//
-//    //使用密钥和加密消息创建新的 AES 密码
-//    block, err := aes.NewCipher(key)
-//
-//    //如果 NewCipher 失败，退出：
-//    if err != nil {
-//        return
-//    }
-//
-//    //如果密文的长度小于 16 字节
-//    //if len(cipherText) < aes.BlockSize {
-//    //    err = errors.New("密文分组长度太小")
-//    //    return
-//    //}
-//
-//    // ^ iv 是初始化向量 (16字节)
-//    iv := cipherText[:aes.BlockSize]
-//    cipherText = cipherText[aes.BlockSize:]
-//
-//    //解密消息
-//    stream := cipher.NewCFBDecrypter(block, iv)
-//    stream.XORKeyStream(cipherText, cipherText)
-//
-//    return string(cipherText), err
-//}
-
-// 32 bit key for AES-256
-// 24 bit key for AES-192
-// 16 bit key for AES-128
-func Encrypt(plainText []byte, key []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-
-	// ^ 使密文成为大小为 BlockSize + 消息长度的字节切片,这样传值后修改不会更改底层数组
-	cipherText := make([]byte, aes.BlockSize+len(plainText))
-
-	// ^ iv 是初始化向量 (16字节)
-	iv := cipherText[:aes.BlockSize]
-	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
-		return nil, err
-	}
-
-	// ^ 加密数据,给定加密算法用的密钥,以及初始化向量
-	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(cipherText[aes.BlockSize:], plainText)
-
-	return cipherText, err
+type Encrypter interface {
+	Encrypt([]byte) []byte
 }
 
-func Decrypt(cipherText []byte, key []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
+type Decrypter interface {
+	Decrypt([]byte) []byte
+}
+
+type AESTemplate struct {
+	Key       []byte
+	NonceSize int
+	Type      Type
+	Encrypter
+	Decrypter
+}
+
+type Type = string
+
+const (
+	PlainType = "PLAIN"
+	CBCType   = "CBC"
+	CFBType   = "CFB"
+	GCMType   = "GCM"
+)
+
+func (t AESTemplate) EncryptStringToBase64(plain string) (string, error) {
+	encrypt, err := t.Encrypt([]byte(plain))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	//如果密文的长度小于 16 字节
-	//if len(cipherText) < aes.BlockSize {
-	//    err = errors.New("密文分组长度太小")
-	//    return
-	//}
+	base64 := base64kit.EncodeToString(encrypt)
+	return base64, nil
+}
 
-	// ^ iv 是初始化向量 (16字节)
-	iv := cipherText[:aes.BlockSize]
-	cipherText = cipherText[aes.BlockSize:]
+func (t AESTemplate) DecryptBase64ToString(base64 string) (string, error) {
+	encrypt, err := base64kit.DecodeString(base64)
+	if err != nil {
+		return "", err
+	}
 
-	stream := cipher.NewCFBDecrypter(block, iv)
-	stream.XORKeyStream(cipherText, cipherText)
+	decrypted, err := t.Decrypt(encrypt)
+	return string(decrypted), nil
+}
 
-	return cipherText, err
+func (t AESTemplate) Encrypt(plain []byte) ([]byte, error) {
+	switch strings.ToUpper(t.Type) {
+	case "PLAIN":
+		return plainkit.Encrypt(plain)
+	case "CBC":
+		return cbckit.EncryptWithNonceSize(plain, t.Key, t.NonceSize)
+	case "CFB":
+		return cfbkit.EncryptWithNonceSize(plain, t.Key, t.NonceSize)
+	case "GCM":
+		return gcmkit.EncryptWithNonceSize(plain, t.Key, t.NonceSize)
+	default:
+		return plainkit.Encrypt(plain)
+	}
+}
+
+func (t AESTemplate) Decrypt(encrypt []byte) ([]byte, error) {
+	switch strings.ToUpper(t.Type) {
+	case "PLAIN":
+		return plainkit.Decrypt(encrypt)
+	case "CBC":
+		return cbckit.DecryptWithNonceSize(encrypt, t.Key, t.NonceSize)
+	case "CFB":
+		return cfbkit.DecryptWithNonceSize(encrypt, t.Key, t.NonceSize)
+	case "GCM":
+		return gcmkit.DecryptWithNonceSize(encrypt, t.Key, t.NonceSize)
+	default:
+		return plainkit.Decrypt(encrypt)
+	}
+}
+
+// PKCS5Padding 对数据进行PKCS5填充
+func PKCS5Padding(data []byte, blockSize int) []byte {
+	padding := blockSize - len(data)%blockSize
+	padText := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(data, padText...)
+}
+
+// PKCS5Unpadding 去除PKCS5填充
+func PKCS5Unpadding(data []byte) ([]byte, error) {
+	length := len(data)
+	if length == 0 {
+		return nil, errors.New("PKCS5 unpadding error: data is empty")
+	}
+	unpadding := int(data[length-1])
+	if unpadding > length {
+		return nil, errors.New("PKCS5 unpadding error: invalid padding size")
+	}
+	return data[:length-unpadding], nil
+}
+
+// ZeroPadding 使用ZeroPadding填充数据
+func ZeroPadding(data []byte, blockSize int) []byte {
+	padding := blockSize - len(data)%blockSize
+	padText := bytes.Repeat([]byte{0}, padding)
+	return append(data, padText...)
+}
+
+// ZeroUnpadding 去除ZeroPadding填充数据
+func ZeroUnpadding(data []byte) ([]byte, error) {
+	length := len(data)
+	if length == 0 {
+		return nil, errors.New("ZeroUnpadding error: data is empty")
+	}
+	unpadding := 0
+	for i := length - 1; i >= 0; i-- {
+		if data[i] == 0 {
+			unpadding++
+		} else {
+			break
+		}
+	}
+	if unpadding == 0 {
+		return nil, errors.New("ZeroUnpadding error: no padding bytes found")
+	}
+	return data[:length-unpadding], nil
 }

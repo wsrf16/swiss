@@ -1,7 +1,7 @@
 package kafkahook
 
 import (
-	"github.com/wsrf16/swiss/module/mq/kafka"
+	"github.com/wsrf16/swiss/module/kafka"
 	"github.com/wsrf16/swiss/sugar/logo"
 	"testing"
 )

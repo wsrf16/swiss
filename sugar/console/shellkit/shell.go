@@ -2,23 +2,36 @@ package shellkit
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"github.com/wsrf16/swiss/sugar/encoding/encodekit"
+	"github.com/wsrf16/swiss/sugar/logo"
 	"os/exec"
 	"runtime"
+	"strings"
 )
 
 type Result struct {
+	Code   int    `json:"code"`
 	Stdout string `json:"stdout"`
 	Stderr string `json:"stderr"`
-	//Err error `json:"err,omitempty"`
+	Error  error  `json:"err,omitempty"`
 }
 type ResultTotal struct {
 	Results []*Result `json:"results,omitempty"`
-	Err     string    `json:"err,omitempty"`
 }
 
 func (t *ResultTotal) Append(result Result) {
 	t.Results = append(t.Results, &result)
+}
+
+func (t *ResultTotal) OK() bool {
+	for _, result := range t.Results {
+		if result.Code != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func ExecuteBatch(commands []string) (ResultTotal, error) {
@@ -26,17 +39,12 @@ func ExecuteBatch(commands []string) (ResultTotal, error) {
 
 	for _, v := range commands {
 
-		if stdout, err := Execute(v); err != nil {
-			result := &Result{Stdout: stdout, Stderr: err.Error()}
-			results = append(results, result)
-		} else {
-			result := &Result{Stdout: stdout, Stderr: ""}
-			results = append(results, result)
-		}
+		code, stdout, stderr, err := Execute(v)
+		results = append(results, &Result{Code: code, Stdout: stdout, Stderr: stderr, Error: err})
 
-		//if err != nil {
+		// if err != nil {
 		//    return ResultTotal{Results: results, Err: err.Error()}, err
-		//}
+		// }
 	}
 	return ResultTotal{Results: results}, nil
 }
@@ -56,42 +64,47 @@ func ExecuteBatch(commands []string) (ResultTotal, error) {
 // 	return stdouts, stderrs, nil
 // }
 
-func Execute(command string) (string, error) {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "linux":
-		cmd = exec.Command("/bin/bash", "-c", command)
-	case "windows":
-		cmd = exec.Command("cmd", "/C", command)
+func NewError(stderr string, err error) error {
+	var exerr string
+	if err == nil {
+		exerr = ""
+	} else {
+		exerr = err.Error()
 	}
+	return errors.New(fmt.Sprintf("%v|%v", stderr, exerr))
+}
+
+func ExecuteSingleLine(cmd string) (code int, stdout string, stderr string, err error) {
+	cmds := strings.Split(cmd, " ")
+	return Execute(cmds...)
+}
+
+func Execute(commands ...string) (code int, stdout string, stderr string, err error) {
+	join := strings.Join(commands, " ")
+	logo.Debug("", "", join)
+	var cmd *exec.Cmd
+	// switch runtime.GOOS {
+	// case "linux":
+	//    commands := append([]string{"-c"}, commands...)
+	//    cmd = exec.Command("/bin/bash", commands...)
+	// case "windows":
+	//    commands := append([]string{"/C"}, commands...)
+	//    cmd = exec.Command("cmd", commands...)
+	//    // commands := command
+	// }
+	cmd = exec.Command(commands[0], commands[1:]...)
 
 	stdoutBuffer := new(bytes.Buffer)
 	stderrBuffer := new(bytes.Buffer)
 	cmd.Stdout, cmd.Stderr = stdoutBuffer, stderrBuffer
 
-	var stdout, stderr string
-	cmderr := cmd.Run()
-
-	// if s, err := decode(stdoutBuffer.Bytes()); err != nil {
-	//     return &s, nil, err
-	// } else {
-	//     stdout = s
-	// }
-	//
-	// if s, err := decode(stderrBuffer.Bytes()); err != nil {
-	//     return &s, nil, err
-	// } else {
-	//     stderr = s
-	// }
-
+	err = cmd.Run()
+	// stdout, err := cmd.Output()
 	stdout, _ = decode(stdoutBuffer.Bytes())
 	stderr, _ = decode(stderrBuffer.Bytes())
+	code = cmd.ProcessState.ExitCode()
 
-	if len(stderr) < 1 {
-		return stdout, cmderr
-	} else {
-		return stderr, cmderr
-	}
+	return code, stdout, stderr, err
 }
 
 func decode(b []byte) (string, error) {

@@ -6,7 +6,7 @@ import (
 )
 
 func TestSpellColorString(t *testing.T) {
-	s := SpellColorString("There is some words.", GreenBg, Red)
+	s := Spell("There is some words.", GreenBg, Red)
 	fmt.Println(s)
 
 }

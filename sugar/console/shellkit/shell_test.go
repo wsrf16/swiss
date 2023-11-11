@@ -6,10 +6,11 @@ import (
 )
 
 func TestExecute(t *testing.T) {
-	stdout, stderr, err := Execute("whoami")
+	code, stdout, stderr, err := Execute("whoami")
 	if err != nil {
 		t.Error(err.Error())
 	}
+	t.Log(code)
 	t.Log(stdout)
 	t.Log(stderr)
 

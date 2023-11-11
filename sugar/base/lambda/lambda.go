@@ -1,12 +1,16 @@
 package lambda
 
-func LoopAlways(always bool, do func()) {
+import (
+	"time"
+)
+
+func Loop(always bool, do func()) {
 	for first := true; first; first = always {
 		do()
 	}
 }
 
-//	func LoopAlwaysReturn[T any](always bool, do func() T) T {
+//	func LoopReturn[T any](always bool, do func() T) T {
 //		if always {
 //			for {
 //				do()
@@ -15,12 +19,25 @@ func LoopAlways(always bool, do func()) {
 //			return do()
 //		}
 //	}
-func LoopAlwaysReturn[T any](always bool, do func() T) T {
+func LoopReturn[T any](always bool, do func() T) T {
 	var t T
 	for b := true; b; b = always {
 		t = do()
 	}
 	return t
+}
+
+func BlockSelect(stop chan int) {
+	//stop := make(chan int)
+For:
+	for {
+		select {
+		case <-stop:
+			break For
+		default:
+			time.Sleep(time.Millisecond * 20)
+		}
+	}
 }
 
 func If[T any](condition bool, match, notMatch T) T {

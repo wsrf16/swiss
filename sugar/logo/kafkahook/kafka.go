@@ -2,9 +2,9 @@ package kafkahook
 
 import (
 	"github.com/Shopify/sarama"
-	"github.com/wsrf16/swiss/module/mq/kafka"
+	"github.com/wsrf16/swiss/module/kafka"
+	"github.com/wsrf16/swiss/sugar/base/ipkit"
 	"github.com/wsrf16/swiss/sugar/logo"
-	"github.com/wsrf16/swiss/sugar/netkit"
 )
 
 type KafkaHook struct {
@@ -18,20 +18,20 @@ func NewKafkaHook(producer sarama.SyncProducer, topic string, formatter logo.For
 }
 
 func (h KafkaHook) Fire(entry *logo.Entry) error {
-	ip, err := netkit.GetHostIp()
+	ip, err := ipkit.GetHostIp()
 	if err != nil {
 		return err
 	}
 	entry.Data["host"] = ip.String()
 
-	//b, err := h.formatter.Format(entry)
-	//if err != nil {
+	// b, err := h.formatter.Format(entry)
+	// if err != nil {
 	//    return err
-	//}
-	//byteEncoder := sarama.ByteEncoder(b)
+	// }
+	// byteEncoder := sarama.ByteEncoder(b)
 	//
-	//return kafka.Send(byteEncoder, h.topic, h.producer)
-	return kafka.SendTT(entry, h.topic, h.producer)
+	// return kafka.Send(byteEncoder, h.topic, h.producer)
+	return kafka.SendT(entry, h.topic, h.producer)
 }
 
 func (h KafkaHook) Levels() []logo.Level {

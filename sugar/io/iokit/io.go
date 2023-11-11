@@ -14,9 +14,9 @@ import (
 	"os"
 )
 
-//var (
+// var (
 //    Monitor = false
-//)
+// )
 
 func WriteToFile(bytes []byte, path string) error {
 	return os.WriteFile(path, bytes, 0666)
@@ -92,13 +92,12 @@ func CopyBufferBlock(dst io.Writer, src io.Reader, monitor bool) (int64, error) 
 }
 
 func print(b ...[]byte) {
-	format := colorkit.SpellColorString("%s", colorkit.GreenBg, colorkit.Yellow)
+	format := colorkit.Spell("%s", colorkit.GreenBg, colorkit.Yellow)
 	log.Printf(format, b)
 }
 
 func CopyBuffer(dst io.Writer, src io.Reader, bufLength int, block bool, monitor bool) (int64, error) {
-	native := block && monitor == false
-	if native {
+	if block && !monitor {
 		return io.Copy(dst, src)
 	} else {
 		intercept := lambda.If[BinaryInterceptor](monitor, print, nil)
@@ -117,8 +116,8 @@ func CopyBufferCallBack(dst io.Writer, src io.Reader, bufLength int, block bool,
 	}
 	s := fmt.Sprintf("read(l-%v r-%v -> l-%v r-%v):\n", fromConn.LocalAddr().String(), fromConn.RemoteAddr().String(), toConn.LocalAddr().String(), toConn.RemoteAddr().String())
 	intercept([]byte(s))
-	//buf不会自动扩容
-	//buf := make([]byte, 0, bufLength)
+	// buf不会自动扩容
+	// buf := make([]byte, 0, bufLength)
 	buf := make([]byte, bufLength)
 	total = make([]byte, 0)
 	for {
@@ -172,7 +171,7 @@ func WriteString(wr io.Writer, s string) (int, error) {
 	return io.WriteString(wr, s)
 }
 
-func ReadAllBytesBlockless(rd io.Reader) ([]byte, error) {
+func ReadAllBytesNonBlocking(rd io.Reader) ([]byte, error) {
 	return ReadAllBytesBuffer(rd, 256, false)
 }
 
@@ -202,7 +201,7 @@ func ReadAllBytesBuffer(rd io.Reader, bufLength int, block bool) ([]byte, error)
 }
 
 func ReadAllString(rd io.Reader) (string, error) {
-	slice, err := ReadAllBytesBlockless(rd)
+	slice, err := ReadAllBytesNonBlocking(rd)
 	return string(slice), err
 }
 
@@ -248,17 +247,17 @@ func ReadLines(rd io.Reader) ([][]byte, error) {
 	}
 }
 
-//func ReadBytes(rd io.Reader, delim byte) (line []byte, err error) {
+// func ReadBytes(rd io.Reader, delim byte) (line []byte, err error) {
 //    return bufio.NewReader(rd).ReadBytes(delim)
-//}
+// }
 //
-//func ReadString(rd io.Reader, delim byte) (string, error) {
+// func ReadString(rd io.Reader, delim byte) (string, error) {
 //    return bufio.NewReader(rd).ReadString(delim)
-//}
+// }
 //
-//func ReadSlice(rd io.Reader, delim byte) (line []byte, err error) {
+// func ReadSlice(rd io.Reader, delim byte) (line []byte, err error) {
 //    return bufio.NewReader(rd).ReadSlice(delim)
-//}
+// }
 
 func CloseAll(connSlice ...net.Conn) {
 	if connSlice != nil {
